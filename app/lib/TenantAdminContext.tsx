@@ -1,0 +1,410 @@
+"use client";
+
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
+import type {
+  TenantUser,
+  Product,
+  Category,
+  Brand,
+  Order,
+  Customer,
+  StoreSettings,
+} from "./types";
+
+// ─── Seed data ────────────────────────────────────────────────────────────────
+
+const SEED_USERS: TenantUser[] = [
+  {
+    id: "u1",
+    name: "Дэлгүүр Эзэн",
+    email: "owner@shop.mn",
+    password: "owner1234",
+    role: "owner",
+    createdAt: "2026-05-01",
+    lastLogin: null,
+    status: "active",
+  },
+];
+
+const SEED_CATEGORIES: Category[] = [
+  { id: "cat1", name: "Электроник", slug: "electronics", parentId: null, image: "", status: "active", createdAt: "2026-05-01" },
+  { id: "cat2", name: "Хувцас", slug: "clothing", parentId: null, image: "", status: "active", createdAt: "2026-05-01" },
+  { id: "cat3", name: "Гэр ахуй", slug: "home", parentId: null, image: "", status: "active", createdAt: "2026-05-01" },
+  { id: "cat4", name: "Утас & Таблет", slug: "phones", parentId: "cat1", image: "", status: "active", createdAt: "2026-05-01" },
+  { id: "cat5", name: "Зурагт & Дуу чимээ", slug: "tv-audio", parentId: "cat1", image: "", status: "active", createdAt: "2026-05-01" },
+];
+
+const SEED_BRANDS: Brand[] = [
+  { id: "br1", name: "Samsung", slug: "samsung", logo: "", status: "active", createdAt: "2026-05-01" },
+  { id: "br2", name: "Apple", slug: "apple", logo: "", status: "active", createdAt: "2026-05-01" },
+  { id: "br3", name: "LG", slug: "lg", logo: "", status: "active", createdAt: "2026-05-01" },
+  { id: "br4", name: "Nike", slug: "nike", logo: "", status: "active", createdAt: "2026-05-01" },
+  { id: "br5", name: "Adidas", slug: "adidas", logo: "", status: "active", createdAt: "2026-05-01" },
+];
+
+const SEED_PRODUCTS: Product[] = [
+  {
+    id: "p1", name: "Samsung Galaxy A55", slug: "samsung-galaxy-a55",
+    description: "6.6 инч Super AMOLED дэлгэц, 50MP камер", price: 1200000, salePrice: 1099000,
+    stock: 24, categoryId: "cat4", brandId: "br1", images: [], tags: ["утас", "android"],
+    featured: true, status: "active", createdAt: "2026-05-01",
+  },
+  {
+    id: "p2", name: "Apple iPhone 15", slug: "apple-iphone-15",
+    description: "6.1 инч Super Retina XDR дэлгэц, A16 Bionic чип", price: 2500000, salePrice: null,
+    stock: 10, categoryId: "cat4", brandId: "br2", images: [], tags: ["утас", "ios"],
+    featured: true, status: "active", createdAt: "2026-05-01",
+  },
+  {
+    id: "p3", name: "LG OLED 55\" TV", slug: "lg-oled-55-tv",
+    description: "55 инч 4K OLED Smart TV, webOS", price: 3200000, salePrice: 2900000,
+    stock: 5, categoryId: "cat5", brandId: "br3", images: [], tags: ["зурагт", "oled"],
+    featured: false, status: "active", createdAt: "2026-05-02",
+  },
+  {
+    id: "p4", name: "Nike Air Max 2025", slug: "nike-air-max-2025",
+    description: "Гүйлтийн гутал, хөнгөн материал", price: 350000, salePrice: null,
+    stock: 40, categoryId: "cat2", brandId: "br4", images: [], tags: ["гутал", "спорт"],
+    featured: false, status: "active", createdAt: "2026-05-03",
+  },
+  {
+    id: "p5", name: "Adidas Ultraboost 24", slug: "adidas-ultraboost-24",
+    description: "Тав тухтай гүйлтийн гутал, Boost технологи", price: 320000, salePrice: 280000,
+    stock: 0, categoryId: "cat2", brandId: "br5", images: [], tags: ["гутал", "спорт"],
+    featured: false, status: "inactive", createdAt: "2026-05-03",
+  },
+];
+
+const SEED_ORDERS: Order[] = [
+  {
+    id: "o1", orderNo: "ORD-2026-001",
+    customer: { name: "Бат-Эрдэнэ Дорж", email: "bat@example.mn", phone: "99001122" },
+    items: [{ productId: "p1", productName: "Samsung Galaxy A55", qty: 1, price: 1099000 }],
+    subtotal: 1099000, total: 1099000, status: "pending", note: "", createdAt: "2026-05-10",
+  },
+  {
+    id: "o2", orderNo: "ORD-2026-002",
+    customer: { name: "Дэлгэрмаа Очир", email: "delger@example.mn", phone: "88223344" },
+    items: [
+      { productId: "p4", productName: "Nike Air Max 2025", qty: 2, price: 350000 },
+    ],
+    subtotal: 700000, total: 700000, status: "processing", note: "Хурдан хүргэх", createdAt: "2026-05-11",
+  },
+  {
+    id: "o3", orderNo: "ORD-2026-003",
+    customer: { name: "Номин-Эрдэнэ Гантулга", email: "nomin@example.mn", phone: "77334455" },
+    items: [{ productId: "p2", productName: "Apple iPhone 15", qty: 1, price: 2500000 }],
+    subtotal: 2500000, total: 2500000, status: "delivered", note: "", createdAt: "2026-05-08",
+  },
+  {
+    id: "o4", orderNo: "ORD-2026-004",
+    customer: { name: "Энхбаяр Лхагва", email: "enkh@example.mn", phone: "99445566" },
+    items: [{ productId: "p3", productName: "LG OLED 55\" TV", qty: 1, price: 2900000 }],
+    subtotal: 2900000, total: 2900000, status: "shipped", note: "", createdAt: "2026-05-12",
+  },
+];
+
+const SEED_CUSTOMERS: Customer[] = [
+  { id: "c1", name: "Бат-Эрдэнэ Дорж", email: "bat@example.mn", phone: "99001122", address: "Улаанбаатар, СБД, 1-р хороо", totalOrders: 3, totalSpent: 3400000, status: "active", createdAt: "2026-04-01" },
+  { id: "c2", name: "Дэлгэрмаа Очир", email: "delger@example.mn", phone: "88223344", address: "Улаанбаатар, БЗД, 3-р хороо", totalOrders: 1, totalSpent: 700000, status: "active", createdAt: "2026-05-11" },
+  { id: "c3", name: "Номин-Эрдэнэ Гантулга", email: "nomin@example.mn", phone: "77334455", address: "Улаанбаатар, ХУД, 5-р хороо", totalOrders: 2, totalSpent: 2800000, status: "active", createdAt: "2026-03-15" },
+  { id: "c4", name: "Энхбаяр Лхагва", email: "enkh@example.mn", phone: "99445566", address: "Улаанбаатар, ЧД, 2-р хороо", totalOrders: 1, totalSpent: 2900000, status: "active", createdAt: "2026-05-12" },
+];
+
+const SEED_SETTINGS: StoreSettings = {
+  storeName: "ikhNaydEcomm Demo",
+  logo: "",
+  primaryColor: "#D32F2F",
+  font: "Inter",
+  bannerTitle: "Хамгийн шилдэг бараанууд",
+  bannerSubtitle: "Хямдрал, шинэ бараа, хүргэлт",
+  contactEmail: "info@shop.mn",
+  contactPhone: "7700-1234",
+  address: "Улаанбаатар хот, Сүхбаатар дүүрэг",
+  features: { reviews: true, chat: false, loyaltyProgram: false },
+};
+
+// ─── Storage helpers ──────────────────────────────────────────────────────────
+
+const KEYS = {
+  users: "ikna_client_users",
+  session: "ikna_client_session",
+  products: "ikna_client_products",
+  categories: "ikna_client_categories",
+  brands: "ikna_client_brands",
+  orders: "ikna_client_orders",
+  customers: "ikna_client_customers",
+  settings: "ikna_client_settings",
+};
+
+function load<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  const raw = localStorage.getItem(key);
+  return raw ? (JSON.parse(raw) as T) : fallback;
+}
+
+function save<T>(key: string, value: T) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+// ─── Context shape ────────────────────────────────────────────────────────────
+
+type TenantAdminCtx = {
+  // Auth
+  currentUser: TenantUser | null;
+  login: (email: string, password: string) => boolean;
+  logout: () => void;
+
+  // Products
+  products: Product[];
+  addProduct: (p: Omit<Product, "id" | "createdAt">) => void;
+  updateProduct: (id: string, patch: Partial<Omit<Product, "id">>) => void;
+  deleteProduct: (id: string) => void;
+
+  // Categories
+  categories: Category[];
+  addCategory: (c: Omit<Category, "id" | "createdAt">) => void;
+  updateCategory: (id: string, patch: Partial<Omit<Category, "id">>) => void;
+  deleteCategory: (id: string) => void;
+
+  // Brands
+  brands: Brand[];
+  addBrand: (b: Omit<Brand, "id" | "createdAt">) => void;
+  updateBrand: (id: string, patch: Partial<Omit<Brand, "id">>) => void;
+  deleteBrand: (id: string) => void;
+
+  // Orders
+  orders: Order[];
+  updateOrderStatus: (id: string, status: Order["status"]) => void;
+
+  // Customers
+  customers: Customer[];
+
+  // Settings
+  settings: StoreSettings;
+  updateSettings: (patch: Partial<StoreSettings>) => void;
+};
+
+const TenantAdminContext = createContext<TenantAdminCtx | null>(null);
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+export function TenantAdminProvider({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState<TenantUser | null>(null);
+  const [users, setUsers] = useState<TenantUser[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [settings, setSettings] = useState<StoreSettings>(SEED_SETTINGS);
+
+  useEffect(() => {
+    const storedUsers = load<TenantUser[]>(KEYS.users, SEED_USERS);
+    const sessionId = load<string | null>(KEYS.session, null);
+
+    if (!localStorage.getItem(KEYS.users)) save(KEYS.users, SEED_USERS);
+    if (!localStorage.getItem(KEYS.products)) save(KEYS.products, SEED_PRODUCTS);
+    if (!localStorage.getItem(KEYS.categories)) save(KEYS.categories, SEED_CATEGORIES);
+    if (!localStorage.getItem(KEYS.brands)) save(KEYS.brands, SEED_BRANDS);
+    if (!localStorage.getItem(KEYS.orders)) save(KEYS.orders, SEED_ORDERS);
+    if (!localStorage.getItem(KEYS.customers)) save(KEYS.customers, SEED_CUSTOMERS);
+    if (!localStorage.getItem(KEYS.settings)) save(KEYS.settings, SEED_SETTINGS);
+
+    setUsers(storedUsers);
+    setProducts(load<Product[]>(KEYS.products, SEED_PRODUCTS));
+    setCategories(load<Category[]>(KEYS.categories, SEED_CATEGORIES));
+    setBrands(load<Brand[]>(KEYS.brands, SEED_BRANDS));
+    setOrders(load<Order[]>(KEYS.orders, SEED_ORDERS));
+    setCustomers(load<Customer[]>(KEYS.customers, SEED_CUSTOMERS));
+    setSettings(load<StoreSettings>(KEYS.settings, SEED_SETTINGS));
+
+    if (sessionId) {
+      const user = storedUsers.find((u) => u.id === sessionId) ?? null;
+      setCurrentUser(user);
+    }
+    setReady(true);
+  }, []);
+
+  // ── Auth ────────────────────────────────────────────────────────────────────
+
+  const login = useCallback(
+    (email: string, password: string): boolean => {
+      const user = users.find(
+        (u) =>
+          u.email.toLowerCase() === email.toLowerCase() &&
+          u.password === password &&
+          u.status === "active"
+      );
+      if (!user) return false;
+      const updated = users.map((u) =>
+        u.id === user.id ? { ...u, lastLogin: new Date().toISOString().slice(0, 10) } : u
+      );
+      setUsers(updated);
+      save(KEYS.users, updated);
+      save(KEYS.session, user.id);
+      setCurrentUser({ ...user, lastLogin: new Date().toISOString().slice(0, 10) });
+      return true;
+    },
+    [users]
+  );
+
+  const logout = useCallback(() => {
+    localStorage.removeItem(KEYS.session);
+    setCurrentUser(null);
+  }, []);
+
+  // ── Products CRUD ────────────────────────────────────────────────────────────
+
+  const addProduct = useCallback(
+    (p: Omit<Product, "id" | "createdAt">) => {
+      const next = [...products, { ...p, id: `p${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10) }];
+      setProducts(next);
+      save(KEYS.products, next);
+    },
+    [products]
+  );
+
+  const updateProduct = useCallback(
+    (id: string, patch: Partial<Omit<Product, "id">>) => {
+      const next = products.map((p) => (p.id === id ? { ...p, ...patch } : p));
+      setProducts(next);
+      save(KEYS.products, next);
+    },
+    [products]
+  );
+
+  const deleteProduct = useCallback(
+    (id: string) => {
+      const next = products.filter((p) => p.id !== id);
+      setProducts(next);
+      save(KEYS.products, next);
+    },
+    [products]
+  );
+
+  // ── Categories CRUD ──────────────────────────────────────────────────────────
+
+  const addCategory = useCallback(
+    (c: Omit<Category, "id" | "createdAt">) => {
+      const next = [...categories, { ...c, id: `cat${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10) }];
+      setCategories(next);
+      save(KEYS.categories, next);
+    },
+    [categories]
+  );
+
+  const updateCategory = useCallback(
+    (id: string, patch: Partial<Omit<Category, "id">>) => {
+      const next = categories.map((c) => (c.id === id ? { ...c, ...patch } : c));
+      setCategories(next);
+      save(KEYS.categories, next);
+    },
+    [categories]
+  );
+
+  const deleteCategory = useCallback(
+    (id: string) => {
+      const next = categories.filter((c) => c.id !== id);
+      setCategories(next);
+      save(KEYS.categories, next);
+    },
+    [categories]
+  );
+
+  // ── Brands CRUD ──────────────────────────────────────────────────────────────
+
+  const addBrand = useCallback(
+    (b: Omit<Brand, "id" | "createdAt">) => {
+      const next = [...brands, { ...b, id: `br${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10) }];
+      setBrands(next);
+      save(KEYS.brands, next);
+    },
+    [brands]
+  );
+
+  const updateBrand = useCallback(
+    (id: string, patch: Partial<Omit<Brand, "id">>) => {
+      const next = brands.map((b) => (b.id === id ? { ...b, ...patch } : b));
+      setBrands(next);
+      save(KEYS.brands, next);
+    },
+    [brands]
+  );
+
+  const deleteBrand = useCallback(
+    (id: string) => {
+      const next = brands.filter((b) => b.id !== id);
+      setBrands(next);
+      save(KEYS.brands, next);
+    },
+    [brands]
+  );
+
+  // ── Orders ───────────────────────────────────────────────────────────────────
+
+  const updateOrderStatus = useCallback(
+    (id: string, status: Order["status"]) => {
+      const next = orders.map((o) => (o.id === id ? { ...o, status } : o));
+      setOrders(next);
+      save(KEYS.orders, next);
+    },
+    [orders]
+  );
+
+  // ── Settings ─────────────────────────────────────────────────────────────────
+
+  const updateSettings = useCallback(
+    (patch: Partial<StoreSettings>) => {
+      const next = { ...settings, ...patch };
+      setSettings(next);
+      save(KEYS.settings, next);
+    },
+    [settings]
+  );
+
+  if (!ready) return null;
+
+  return (
+    <TenantAdminContext.Provider
+      value={{
+        currentUser,
+        login,
+        logout,
+        products,
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        categories,
+        addCategory,
+        updateCategory,
+        deleteCategory,
+        brands,
+        addBrand,
+        updateBrand,
+        deleteBrand,
+        orders,
+        updateOrderStatus,
+        customers,
+        settings,
+        updateSettings,
+      }}
+    >
+      {children}
+    </TenantAdminContext.Provider>
+  );
+}
+
+export function useTenantAdmin() {
+  const ctx = useContext(TenantAdminContext);
+  if (!ctx) throw new Error("useTenantAdmin must be used within TenantAdminProvider");
+  return ctx;
+}

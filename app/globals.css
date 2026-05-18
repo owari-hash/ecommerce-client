@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+/* ─── Design tokens ─────────────────────────────────────────────────── */
+:root {
+  --brand:       #D32F2F;
+  --brand-dark:  #B71C1C;
+  --brand-light: #EF5350;
+  --sidebar-w:   260px;
+  --topbar-h:    60px;
+}
+
+@theme {
+  --color-brand:       var(--brand);
+  --color-brand-dark:  var(--brand-dark);
+  --color-brand-light: var(--brand-light);
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; margin: 0; padding: 0; }
+
+body {
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  background: #f1f5f9;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ─── Focus ring ─────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ─── Form elements ──────────────────────────────────────────────────── */
+input, select, textarea {
+  font-family: inherit;
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .6; }
+}
+
+.animate-fade-in   { animation: fadeIn .25s ease both; }
+.animate-slide-in  { animation: slideInLeft .25s ease both; }
+.animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }

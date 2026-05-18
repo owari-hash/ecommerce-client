@@ -19,6 +19,8 @@ import type {
   Renter,
 } from "./types";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
 // ─── Seed data ────────────────────────────────────────────────────────────────
 
 const SEED_USERS: TenantUser[] = [
@@ -181,7 +183,7 @@ type TenantAdminCtx = {
   // Auth
   currentUser: TenantUser | null;
   currentRenter: Renter | null;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 
   // Renters CRUD (owner/manager only)
@@ -275,8 +277,48 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
   // ── Auth ────────────────────────────────────────────────────────────────────
 
   const login = useCallback(
-    (email: string, password: string): boolean => {
-      // Try TenantUser first
+    async (email: string, password: string): Promise<boolean> => {
+      // 1. Try real backend authentication API
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (res.ok) {
+          const body = await res.json();
+          const { token, user } = body.data;
+
+          // Save the token
+          localStorage.setItem("ikna_admin_token", token);
+
+          const tenantUser: TenantUser = {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            password: "", // No local plain text password
+            role: user.role === "superadmin" ? "owner" : "manager",
+            createdAt: new Date().toISOString().slice(0, 10),
+            lastLogin: new Date().toISOString().slice(0, 10),
+            status: "active",
+          };
+
+          // Save session
+          save(KEYS.session, user.id);
+          localStorage.setItem(KEYS.users, JSON.stringify([tenantUser]));
+          localStorage.removeItem(KEYS.renterSession);
+          setCurrentUser(tenantUser);
+          setCurrentRenter(null);
+          return true;
+        }
+      } catch (e) {
+        console.error("Backend auth failed, attempting offline mock data:", e);
+      }
+
+      // 2. Offline fallback to local TenantUser
       const user = users.find(
         (u) =>
           u.email.toLowerCase() === email.toLowerCase() &&
@@ -296,7 +338,7 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
         return true;
       }
 
-      // Try Renter
+      // 3. Offline fallback to local Renter
       const renter = renters.find(
         (r) =>
           r.email.toLowerCase() === email.toLowerCase() &&
@@ -324,6 +366,7 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem(KEYS.session);
     localStorage.removeItem(KEYS.renterSession);
+    localStorage.removeItem("ikna_admin_token");
     setCurrentUser(null);
     setCurrentRenter(null);
   }, []);

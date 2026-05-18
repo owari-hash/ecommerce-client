@@ -16,6 +16,8 @@ export type Product = {
   tags: string[];
   featured: boolean;
   status: ProductStatus;
+  /** null = store-owned product; string = renter id who owns it */
+  renterId: string | null;
   createdAt: string;
 };
 
@@ -99,6 +101,20 @@ export type TenantUser = {
   /** Stored plaintext for demo — hash in production */
   password: string;
   role: TenantUserRole;
+  createdAt: string;
+  lastLogin: string | null;
+  status: "active" | "inactive";
+};
+
+// ─── Renter (sub-tenant who only manages their own products) ─────────────────
+
+export type Renter = {
+  id: string;
+  name: string;
+  storeName: string;
+  email: string;
+  /** Stored plaintext for demo — hash in production */
+  password: string;
   createdAt: string;
   lastLogin: string | null;
   status: "active" | "inactive";

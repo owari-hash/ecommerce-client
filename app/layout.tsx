@@ -6,7 +6,7 @@ import { TenantAdminProvider } from "./lib/TenantAdminContext";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "ikhNayd Дэлгүүрийн Админ",
+  title: "Дэлгүүрийн Админ",
   description: "Бүтээгдэхүүн, ангилал, захиалга удирдах дэлгүүрийн удирдлагын самбар",
 };
 

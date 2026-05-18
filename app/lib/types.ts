@@ -40,6 +40,9 @@ export type Brand = {
   name: string;
   slug: string;
   logo: string;
+  description: string;
+  /** null = store brand; string = renter id who owns this brand */
+  renterId: string | null;
   status: "active" | "inactive";
   createdAt: string;
 };

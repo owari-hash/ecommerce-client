@@ -16,6 +16,7 @@ import type {
   Order,
   Customer,
   StoreSettings,
+  Renter,
 } from "./types";
 
 // ─── Seed data ────────────────────────────────────────────────────────────────
@@ -33,6 +34,19 @@ const SEED_USERS: TenantUser[] = [
   },
 ];
 
+const SEED_RENTERS: Renter[] = [
+  {
+    id: "r1",
+    name: "Болд Дорж",
+    storeName: "Bold Fashion",
+    email: "bold@renter.mn",
+    password: "renter1234",
+    createdAt: "2026-05-10",
+    lastLogin: null,
+    status: "active",
+  },
+];
+
 const SEED_CATEGORIES: Category[] = [
   { id: "cat1", name: "Электроник", slug: "electronics", parentId: null, image: "", status: "active", createdAt: "2026-05-01" },
   { id: "cat2", name: "Хувцас", slug: "clothing", parentId: null, image: "", status: "active", createdAt: "2026-05-01" },
@@ -42,11 +56,12 @@ const SEED_CATEGORIES: Category[] = [
 ];
 
 const SEED_BRANDS: Brand[] = [
-  { id: "br1", name: "Samsung", slug: "samsung", logo: "", status: "active", createdAt: "2026-05-01" },
-  { id: "br2", name: "Apple", slug: "apple", logo: "", status: "active", createdAt: "2026-05-01" },
-  { id: "br3", name: "LG", slug: "lg", logo: "", status: "active", createdAt: "2026-05-01" },
-  { id: "br4", name: "Nike", slug: "nike", logo: "", status: "active", createdAt: "2026-05-01" },
-  { id: "br5", name: "Adidas", slug: "adidas", logo: "", status: "active", createdAt: "2026-05-01" },
+  { id: "br1", name: "Samsung", slug: "samsung", logo: "", description: "", renterId: null, status: "active", createdAt: "2026-05-01" },
+  { id: "br2", name: "Apple", slug: "apple", logo: "", description: "", renterId: null, status: "active", createdAt: "2026-05-01" },
+  { id: "br3", name: "LG", slug: "lg", logo: "", description: "", renterId: null, status: "active", createdAt: "2026-05-01" },
+  { id: "br4", name: "Nike", slug: "nike", logo: "", description: "", renterId: null, status: "active", createdAt: "2026-05-01" },
+  { id: "br5", name: "Adidas", slug: "adidas", logo: "", description: "", renterId: null, status: "active", createdAt: "2026-05-01" },
+  { id: "br6", name: "Bold Fashion", slug: "bold-fashion", logo: "", description: "", renterId: "r1", status: "active", createdAt: "2026-05-10" },
 ];
 
 const SEED_PRODUCTS: Product[] = [
@@ -54,31 +69,37 @@ const SEED_PRODUCTS: Product[] = [
     id: "p1", name: "Samsung Galaxy A55", slug: "samsung-galaxy-a55",
     description: "6.6 инч Super AMOLED дэлгэц, 50MP камер", price: 1200000, salePrice: 1099000,
     stock: 24, categoryId: "cat4", brandId: "br1", images: [], tags: ["утас", "android"],
-    featured: true, status: "active", createdAt: "2026-05-01",
+    featured: true, status: "active", renterId: null, createdAt: "2026-05-01",
   },
   {
     id: "p2", name: "Apple iPhone 15", slug: "apple-iphone-15",
     description: "6.1 инч Super Retina XDR дэлгэц, A16 Bionic чип", price: 2500000, salePrice: null,
     stock: 10, categoryId: "cat4", brandId: "br2", images: [], tags: ["утас", "ios"],
-    featured: true, status: "active", createdAt: "2026-05-01",
+    featured: true, status: "active", renterId: null, createdAt: "2026-05-01",
   },
   {
     id: "p3", name: "LG OLED 55\" TV", slug: "lg-oled-55-tv",
     description: "55 инч 4K OLED Smart TV, webOS", price: 3200000, salePrice: 2900000,
     stock: 5, categoryId: "cat5", brandId: "br3", images: [], tags: ["зурагт", "oled"],
-    featured: false, status: "active", createdAt: "2026-05-02",
+    featured: false, status: "active", renterId: null, createdAt: "2026-05-02",
   },
   {
     id: "p4", name: "Nike Air Max 2025", slug: "nike-air-max-2025",
     description: "Гүйлтийн гутал, хөнгөн материал", price: 350000, salePrice: null,
     stock: 40, categoryId: "cat2", brandId: "br4", images: [], tags: ["гутал", "спорт"],
-    featured: false, status: "active", createdAt: "2026-05-03",
+    featured: false, status: "active", renterId: null, createdAt: "2026-05-03",
   },
   {
     id: "p5", name: "Adidas Ultraboost 24", slug: "adidas-ultraboost-24",
     description: "Тав тухтай гүйлтийн гутал, Boost технологи", price: 320000, salePrice: 280000,
     stock: 0, categoryId: "cat2", brandId: "br5", images: [], tags: ["гутал", "спорт"],
-    featured: false, status: "inactive", createdAt: "2026-05-03",
+    featured: false, status: "inactive", renterId: null, createdAt: "2026-05-03",
+  },
+  {
+    id: "p6", name: "Bold Fashion Цамц", slug: "bold-fashion-shirt",
+    description: "Үдийн цагт тохирох хөнгөн цамц", price: 89000, salePrice: null,
+    stock: 15, categoryId: "cat2", brandId: "br6", images: [], tags: ["цамц"],
+    featured: false, status: "active", renterId: "r1", createdAt: "2026-05-12",
   },
 ];
 
@@ -92,9 +113,7 @@ const SEED_ORDERS: Order[] = [
   {
     id: "o2", orderNo: "ORD-2026-002",
     customer: { name: "Дэлгэрмаа Очир", email: "delger@example.mn", phone: "88223344" },
-    items: [
-      { productId: "p4", productName: "Nike Air Max 2025", qty: 2, price: 350000 },
-    ],
+    items: [{ productId: "p4", productName: "Nike Air Max 2025", qty: 2, price: 350000 }],
     subtotal: 700000, total: 700000, status: "processing", note: "Хурдан хүргэх", createdAt: "2026-05-11",
   },
   {
@@ -119,7 +138,7 @@ const SEED_CUSTOMERS: Customer[] = [
 ];
 
 const SEED_SETTINGS: StoreSettings = {
-  storeName: "ikhNaydEcomm Demo",
+  storeName: "Их наяд плаза",
   logo: "",
   primaryColor: "#D32F2F",
   font: "Inter",
@@ -136,6 +155,8 @@ const SEED_SETTINGS: StoreSettings = {
 const KEYS = {
   users: "ikna_client_users",
   session: "ikna_client_session",
+  renters: "ikna_client_renters",
+  renterSession: "ikna_client_renter_session",
   products: "ikna_client_products",
   categories: "ikna_client_categories",
   brands: "ikna_client_brands",
@@ -159,8 +180,15 @@ function save<T>(key: string, value: T) {
 type TenantAdminCtx = {
   // Auth
   currentUser: TenantUser | null;
+  currentRenter: Renter | null;
   login: (email: string, password: string) => boolean;
   logout: () => void;
+
+  // Renters CRUD (owner/manager only)
+  renters: Renter[];
+  addRenter: (r: Omit<Renter, "id" | "createdAt" | "lastLogin">, brand?: { logo: string; description: string }) => void;
+  updateRenter: (id: string, patch: Partial<Omit<Renter, "id">>) => void;
+  deleteRenter: (id: string) => void;
 
   // Products
   products: Product[];
@@ -199,7 +227,9 @@ const TenantAdminContext = createContext<TenantAdminCtx | null>(null);
 export function TenantAdminProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [currentUser, setCurrentUser] = useState<TenantUser | null>(null);
+  const [currentRenter, setCurrentRenter] = useState<Renter | null>(null);
   const [users, setUsers] = useState<TenantUser[]>([]);
+  const [renters, setRenters] = useState<Renter[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -209,9 +239,12 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const storedUsers = load<TenantUser[]>(KEYS.users, SEED_USERS);
+    const storedRenters = load<Renter[]>(KEYS.renters, SEED_RENTERS);
     const sessionId = load<string | null>(KEYS.session, null);
+    const renterSessionId = load<string | null>(KEYS.renterSession, null);
 
     if (!localStorage.getItem(KEYS.users)) save(KEYS.users, SEED_USERS);
+    if (!localStorage.getItem(KEYS.renters)) save(KEYS.renters, SEED_RENTERS);
     if (!localStorage.getItem(KEYS.products)) save(KEYS.products, SEED_PRODUCTS);
     if (!localStorage.getItem(KEYS.categories)) save(KEYS.categories, SEED_CATEGORIES);
     if (!localStorage.getItem(KEYS.brands)) save(KEYS.brands, SEED_BRANDS);
@@ -220,6 +253,7 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
     if (!localStorage.getItem(KEYS.settings)) save(KEYS.settings, SEED_SETTINGS);
 
     setUsers(storedUsers);
+    setRenters(storedRenters);
     setProducts(load<Product[]>(KEYS.products, SEED_PRODUCTS));
     setCategories(load<Category[]>(KEYS.categories, SEED_CATEGORIES));
     setBrands(load<Brand[]>(KEYS.brands, SEED_BRANDS));
@@ -230,7 +264,11 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
     if (sessionId) {
       const user = storedUsers.find((u) => u.id === sessionId) ?? null;
       setCurrentUser(user);
+    } else if (renterSessionId) {
+      const renter = storedRenters.find((r) => r.id === renterSessionId) ?? null;
+      setCurrentRenter(renter);
     }
+
     setReady(true);
   }, []);
 
@@ -238,29 +276,126 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     (email: string, password: string): boolean => {
+      // Try TenantUser first
       const user = users.find(
         (u) =>
           u.email.toLowerCase() === email.toLowerCase() &&
           u.password === password &&
           u.status === "active"
       );
-      if (!user) return false;
-      const updated = users.map((u) =>
-        u.id === user.id ? { ...u, lastLogin: new Date().toISOString().slice(0, 10) } : u
+      if (user) {
+        const updatedUsers = users.map((u) =>
+          u.id === user.id ? { ...u, lastLogin: new Date().toISOString().slice(0, 10) } : u
+        );
+        setUsers(updatedUsers);
+        save(KEYS.users, updatedUsers);
+        save(KEYS.session, user.id);
+        localStorage.removeItem(KEYS.renterSession);
+        setCurrentUser({ ...user, lastLogin: new Date().toISOString().slice(0, 10) });
+        setCurrentRenter(null);
+        return true;
+      }
+
+      // Try Renter
+      const renter = renters.find(
+        (r) =>
+          r.email.toLowerCase() === email.toLowerCase() &&
+          r.password === password &&
+          r.status === "active"
       );
-      setUsers(updated);
-      save(KEYS.users, updated);
-      save(KEYS.session, user.id);
-      setCurrentUser({ ...user, lastLogin: new Date().toISOString().slice(0, 10) });
-      return true;
+      if (renter) {
+        const updatedRenters = renters.map((r) =>
+          r.id === renter.id ? { ...r, lastLogin: new Date().toISOString().slice(0, 10) } : r
+        );
+        setRenters(updatedRenters);
+        save(KEYS.renters, updatedRenters);
+        save(KEYS.renterSession, renter.id);
+        localStorage.removeItem(KEYS.session);
+        setCurrentRenter({ ...renter, lastLogin: new Date().toISOString().slice(0, 10) });
+        setCurrentUser(null);
+        return true;
+      }
+
+      return false;
     },
-    [users]
+    [users, renters]
   );
 
   const logout = useCallback(() => {
     localStorage.removeItem(KEYS.session);
+    localStorage.removeItem(KEYS.renterSession);
     setCurrentUser(null);
+    setCurrentRenter(null);
   }, []);
+
+  // ── Renters CRUD ─────────────────────────────────────────────────────────────
+
+  const addRenter = useCallback(
+    (r: Omit<Renter, "id" | "createdAt" | "lastLogin">, brand?: { logo: string; description: string }) => {
+      const ts = Date.now();
+      const renterId = `r${ts}`;
+      const brandId = `br${ts}`;
+      const today = new Date().toISOString().slice(0, 10);
+
+      const newRenter: Renter = { ...r, id: renterId, createdAt: today, lastLogin: null };
+      const newBrand: Brand = {
+        id: brandId,
+        name: r.storeName,
+        slug: r.storeName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        logo: brand?.logo ?? "",
+        description: brand?.description ?? "",
+        renterId,
+        status: "active",
+        createdAt: today,
+      };
+
+      const nextRenters = [...renters, newRenter];
+      const nextBrands = [...brands, newBrand];
+      setRenters(nextRenters);
+      setBrands(nextBrands);
+      save(KEYS.renters, nextRenters);
+      save(KEYS.brands, nextBrands);
+    },
+    [renters, brands]
+  );
+
+  const updateRenter = useCallback(
+    (id: string, patch: Partial<Omit<Renter, "id">>) => {
+      const nextRenters = renters.map((r) => (r.id === id ? { ...r, ...patch } : r));
+      setRenters(nextRenters);
+      save(KEYS.renters, nextRenters);
+
+      // Sync brand name/slug if storeName changed
+      if (patch.storeName) {
+        const nextBrands = brands.map((b) =>
+          b.renterId === id
+            ? {
+                ...b,
+                name: patch.storeName!,
+                slug: patch.storeName!.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+              }
+            : b
+        );
+        setBrands(nextBrands);
+        save(KEYS.brands, nextBrands);
+      }
+    },
+    [renters, brands]
+  );
+
+  const deleteRenter = useCallback(
+    (id: string) => {
+      const nextRenters = renters.filter((r) => r.id !== id);
+      setRenters(nextRenters);
+      save(KEYS.renters, nextRenters);
+
+      // Detach brand (keep brand, clear the renter link)
+      const nextBrands = brands.map((b) => (b.renterId === id ? { ...b, renterId: null } : b));
+      setBrands(nextBrands);
+      save(KEYS.brands, nextBrands);
+    },
+    [renters, brands]
+  );
 
   // ── Products CRUD ────────────────────────────────────────────────────────────
 
@@ -377,8 +512,13 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
     <TenantAdminContext.Provider
       value={{
         currentUser,
+        currentRenter,
         login,
         logout,
+        renters,
+        addRenter,
+        updateRenter,
+        deleteRenter,
         products,
         addProduct,
         updateProduct,

@@ -7,20 +7,22 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const { currentUser } = useTenantAdmin();
+  const { currentUser, currentRenter } = useTenantAdmin();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checked, setChecked] = useState(false);
 
+  const isLoggedIn = currentUser !== null || currentRenter !== null;
+
   useEffect(() => {
     setChecked(true);
-    if (!currentUser) {
+    if (!isLoggedIn) {
       router.replace("/login");
     }
-  }, [currentUser, router]);
+  }, [isLoggedIn, router]);
 
   if (!checked) return null;
-  if (!currentUser) return null;
+  if (!isLoggedIn) return null;
 
   return (
     <>

@@ -9,7 +9,7 @@ type ProductForm = Omit<Product, "id" | "createdAt">;
 const EMPTY_FORM: ProductForm = {
   name: "", slug: "", description: "", price: 0, salePrice: null,
   stock: 0, categoryId: "", brandId: "", images: [], tags: [],
-  featured: false, status: "active",
+  featured: false, status: "active", renterId: null,
 };
 
 function slugify(s: string) {
@@ -29,14 +29,26 @@ const STATUS_LABEL: Record<ProductStatus, string> = {
 };
 
 export default function ProductsPage() {
-  const { products, categories, brands, addProduct, updateProduct, deleteProduct } = useTenantAdmin();
+  const {
+    products, categories, brands, renters,
+    addProduct, updateProduct, deleteProduct,
+    currentUser, currentRenter,
+  } = useTenantAdmin();
+
+  const isRenter = currentRenter !== null;
+
+  // Renters only see their own products; owners see all
+  const visibleProducts = isRenter
+    ? products.filter((p) => p.renterId === currentRenter.id)
+    : products;
+
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState<ProductForm>(EMPTY_FORM);
+  const [form, setForm] = useState<ProductForm>({ ...EMPTY_FORM, renterId: isRenter ? currentRenter.id : null });
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<ProductStatus | "all">("all");
 
-  const filtered = products.filter((p) => {
+  const filtered = visibleProducts.filter((p) => {
     const matchSearch =
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.slug.toLowerCase().includes(search.toLowerCase());
@@ -45,18 +57,20 @@ export default function ProductsPage() {
   });
 
   function openAdd() {
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, renterId: isRenter ? currentRenter.id : null });
     setEditId(null);
     setModal("add");
   }
 
   function openEdit(p: Product) {
+    // Renters can only edit their own products
+    if (isRenter && p.renterId !== currentRenter.id) return;
     setForm({
       name: p.name, slug: p.slug, description: p.description,
       price: p.price, salePrice: p.salePrice, stock: p.stock,
       categoryId: p.categoryId, brandId: p.brandId,
       images: [...p.images], tags: [...p.tags],
-      featured: p.featured, status: p.status,
+      featured: p.featured, status: p.status, renterId: p.renterId,
     });
     setEditId(p.id);
     setModal("edit");
@@ -78,14 +92,22 @@ export default function ProductsPage() {
 
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? "—";
   const brandName = (id: string) => brands.find((b) => b.id === id)?.name ?? "—";
+  const renterName = (id: string | null) =>
+    id ? (renters.find((r) => r.id === id)?.storeName ?? id) : "Дэлгүүр";
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Бүтээгдэхүүн</h2>
-          <p className="text-sm text-slate-400 mt-0.5">Дэлгүүрийн каталогийг удирдах</p>
+          <h2 className="text-xl font-bold text-slate-800">
+            {isRenter ? "Миний бүтээгдэхүүн" : "Бүтээгдэхүүн"}
+          </h2>
+          <p className="text-sm text-slate-400 mt-0.5">
+            {isRenter
+              ? `${currentRenter.storeName} · ${visibleProducts.length} бүтээгдэхүүн`
+              : "Дэлгүүрийн каталогийг удирдах"}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {/* Status filter */}
@@ -108,16 +130,14 @@ export default function ProductsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
-              type="text"
-              placeholder="Хайх..."
-              value={search}
+              type="text" placeholder="Хайх..." value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-sm w-44 focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
             />
           </div>
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 bg-[#D32F2F] hover:bg-[#B71C1C] text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm"
+            className={`flex items-center gap-2 text-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm ${isRenter ? "bg-amber-500 hover:bg-amber-600" : "bg-[#D32F2F] hover:bg-[#B71C1C]"}`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -126,6 +146,18 @@ export default function ProductsPage() {
           </button>
         </div>
       </div>
+
+      {/* Renter info banner */}
+      {isRenter && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 flex items-center gap-3">
+          <svg className="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-sm text-amber-800">
+            Та зөвхөн өөрийн бүтээгдэхүүнийг харж, засварлах боломжтой.
+          </p>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -139,29 +171,31 @@ export default function ProductsPage() {
                 <th className="px-6 py-3">Үнэ</th>
                 <th className="px-6 py-3">Нөөц</th>
                 <th className="px-6 py-3">Статус</th>
+                {!isRenter && <th className="px-6 py-3">Түрээслэгч</th>}
                 <th className="px-6 py-3">Үйлдэл</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                        {p.name}
-                        {p.featured && (
-                          <svg className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                          </svg>
-                        )}
-                      </p>
-                      <p className="text-xs text-slate-400 font-mono">/{p.slug}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3 text-sm text-slate-600">{categoryName(p.categoryId)}</td>
-                  <td className="px-6 py-3 text-sm text-slate-600">{brandName(p.brandId)}</td>
-                  <td className="px-6 py-3">
-                    <div>
+              {filtered.map((p) => {
+                const canEdit = !isRenter || p.renterId === currentRenter?.id;
+                return (
+                  <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                          {p.name}
+                          {p.featured && (
+                            <svg className="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          )}
+                        </p>
+                        <p className="text-xs text-slate-400 font-mono">/{p.slug}</p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-3 text-sm text-slate-600">{categoryName(p.categoryId)}</td>
+                    <td className="px-6 py-3 text-sm text-slate-600">{brandName(p.brandId)}</td>
+                    <td className="px-6 py-3">
                       {p.salePrice ? (
                         <>
                           <p className="text-sm font-semibold text-[#D32F2F]">₮{p.salePrice.toLocaleString()}</p>
@@ -170,35 +204,46 @@ export default function ProductsPage() {
                       ) : (
                         <p className="text-sm font-semibold text-slate-800">₮{p.price.toLocaleString()}</p>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-3">
-                    <span className={`text-sm font-semibold ${p.stock === 0 ? "text-red-500" : p.stock < 5 ? "text-yellow-600" : "text-slate-700"}`}>
-                      {p.stock}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3">
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_STYLE[p.status]}`}>
-                      {STATUS_LABEL[p.status]}
-                    </span>
-                  </td>
-                  <td className="px-6 py-3">
-                    <div className="flex gap-2">
-                      <button onClick={() => openEdit(p)} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors font-semibold">
-                        Засах
-                      </button>
-                      <button
-                        onClick={() => { if (confirm(`"${p.name}" устгах уу?`)) deleteProduct(p.id); }}
-                        className="text-xs bg-red-50 hover:bg-red-100 text-[#D32F2F] px-3 py-1.5 rounded-lg transition-colors font-semibold"
-                      >
-                        Устгах
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className={`text-sm font-semibold ${p.stock === 0 ? "text-red-500" : p.stock < 5 ? "text-yellow-600" : "text-slate-700"}`}>
+                        {p.stock}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_STYLE[p.status]}`}>
+                        {STATUS_LABEL[p.status]}
+                      </span>
+                    </td>
+                    {!isRenter && (
+                      <td className="px-6 py-3">
+                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${p.renterId ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-500"}`}>
+                          {renterName(p.renterId)}
+                        </span>
+                      </td>
+                    )}
+                    <td className="px-6 py-3">
+                      {canEdit ? (
+                        <div className="flex gap-2">
+                          <button onClick={() => openEdit(p)} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors font-semibold">
+                            Засах
+                          </button>
+                          <button
+                            onClick={() => { if (confirm(`"${p.name}" устгах уу?`)) deleteProduct(p.id); }}
+                            className="text-xs bg-red-50 hover:bg-red-100 text-[#D32F2F] px-3 py-1.5 rounded-lg transition-colors font-semibold"
+                          >
+                            Устгах
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-300">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-400 text-sm">Бүтээгдэхүүн олдсонгүй</td></tr>
+                <tr><td colSpan={isRenter ? 7 : 8} className="px-6 py-12 text-center text-slate-400 text-sm">Бүтээгдэхүүн олдсонгүй</td></tr>
               )}
             </tbody>
           </table>
@@ -315,6 +360,23 @@ export default function ProductsPage() {
                 </div>
               </div>
 
+              {/* Owner-only: assign to renter */}
+              {!isRenter && currentUser && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Түрээслэгч</label>
+                  <select
+                    value={form.renterId ?? ""}
+                    onChange={(e) => setField("renterId", e.target.value || null)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                  >
+                    <option value="">Дэлгүүрийн өөрийн бараа</option>
+                    {renters.map((r) => (
+                      <option key={r.id} value={r.id}>{r.storeName} ({r.name})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Статус</label>
@@ -351,7 +413,7 @@ export default function ProductsPage() {
                 <button type="button" onClick={closeModal} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
                   Болих
                 </button>
-                <button type="submit" className="flex-1 py-2.5 rounded-xl bg-[#D32F2F] hover:bg-[#B71C1C] text-white text-sm font-semibold transition-colors shadow-sm">
+                <button type="submit" className={`flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors shadow-sm ${isRenter ? "bg-amber-500 hover:bg-amber-600" : "bg-[#D32F2F] hover:bg-[#B71C1C]"}`}>
                   {modal === "add" ? "Нэмэх" : "Хадгалах"}
                 </button>
               </div>

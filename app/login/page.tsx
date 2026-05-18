@@ -44,7 +44,7 @@ export default function LoginPage() {
         <div className="flex items-center gap-3 mb-8 px-1">
           <div className="w-2.5 h-10 bg-gradient-to-b from-[#EF5350] to-[#B71C1C] rounded-full" />
           <div>
-            <p className="text-white font-bold text-xl leading-none tracking-tight">ikhNayd</p>
+           
             <p className="text-[#D32F2F] text-xs font-semibold mt-0.5 tracking-wide uppercase">
               Дэлгүүрийн Удирдлага
             </p>

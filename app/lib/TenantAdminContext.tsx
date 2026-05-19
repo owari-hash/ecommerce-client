@@ -270,14 +270,15 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
       const renter = storedRenters.find((r) => r.id === renterSessionId) ?? null;
       setCurrentRenter(renter);
     }
+  }, []);
 
-    // Fetch from backend
+  const fetchConfig = useCallback((tokenOverride?: string) => {
     const searchParams = new URLSearchParams(window.location.search);
     const tenantParam = searchParams.get('tenant');
     const qs = tenantParam ? `?tenant=${encodeURIComponent(tenantParam)}` : '';
-    const token = localStorage.getItem("ikna_admin_token");
+    const token = tokenOverride || localStorage.getItem("ikna_admin_token");
 
-    fetch(`${API_BASE}/api/config${qs}`, {
+    return fetch(`${API_BASE}/api/config${qs}`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       }
@@ -301,11 +302,14 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
           save(KEYS.settings, fetchedSettings);
         }
       })
-      .catch((err) => console.error("Failed to fetch initial config", err))
-      .finally(() => {
-        setReady(true);
-      });
+      .catch((err) => console.error("Failed to fetch initial config", err));
   }, []);
+
+  useEffect(() => {
+    fetchConfig().finally(() => {
+      setReady(true);
+    });
+  }, [fetchConfig]);
 
   // ── Auth ────────────────────────────────────────────────────────────────────
 
@@ -327,6 +331,9 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
 
           // Save the token
           localStorage.setItem("ikna_admin_token", token);
+          
+          // Fetch settings immediately for this user's tenant
+          await fetchConfig(token);
 
           const tenantUser: TenantUser = {
             id: user.id,
@@ -393,7 +400,7 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
 
       return false;
     },
-    [users, renters]
+    [users, renters, fetchConfig]
   );
 
   const logout = useCallback(() => {

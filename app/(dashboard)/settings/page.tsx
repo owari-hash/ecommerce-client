@@ -45,7 +45,7 @@ export default function SettingsPage() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://localhost:8000/api/upload", {
+      const res = await fetch("http://103.236.194.106:8000/api/upload", {
         method: "POST",
         body: formData,
       });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTenantAdmin } from "../../lib/TenantAdminContext";
 
 const COLORS = [
@@ -31,6 +31,39 @@ export default function SettingsPage() {
     updateSettings(draft);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  }
+
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("http://localhost:8000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setDraftField("logo", data.url);
+      } else {
+        console.error("Upload failed");
+      }
+    } catch (err) {
+      console.error("Upload error", err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   }
 
   return (
@@ -77,13 +110,21 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Logo URL</label>
-              <input
-                type="text" value={draft.logo}
-                onChange={(e) => setDraftField("logo", e.target.value)}
-                placeholder="https://..."
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-              />
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Лого</label>
+              <div className="flex items-center gap-3">
+                {draft.logo && (
+                  <img src={draft.logo} alt="Logo" className="w-10 h-10 object-contain bg-slate-50 border border-slate-200 rounded" />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleLogoUpload}
+                  disabled={uploading}
+                  className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                />
+              </div>
+              {uploading && <p className="text-xs text-slate-400 mt-1">Хуулж байна...</p>}
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

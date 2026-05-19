@@ -541,10 +541,22 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
   // ── Settings ─────────────────────────────────────────────────────────────────
 
   const updateSettings = useCallback(
-    (patch: Partial<StoreSettings>) => {
+    async (patch: Partial<StoreSettings>) => {
       const next = { ...settings, ...patch };
       setSettings(next);
       save(KEYS.settings, next);
+
+      try {
+        await fetch(`${API_BASE}/api/config`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(patch),
+        });
+      } catch (err) {
+        console.error("Failed to update config on backend:", err);
+      }
     },
     [settings]
   );

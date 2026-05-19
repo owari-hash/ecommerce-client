@@ -275,8 +275,13 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
     const searchParams = new URLSearchParams(window.location.search);
     const tenantParam = searchParams.get('tenant');
     const qs = tenantParam ? `?tenant=${encodeURIComponent(tenantParam)}` : '';
+    const token = localStorage.getItem("ikna_admin_token");
 
-    fetch(`${API_BASE}/api/config${qs}`)
+    fetch(`${API_BASE}/api/config${qs}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data && data.branding) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useTenantAdmin } from "../../lib/TenantAdminContext";
+import { useTenantAdmin, API_BASE } from "../../lib/TenantAdminContext";
 
 const COLORS = [
   "#D32F2F", "#B71C1C", "#E53935",
@@ -45,7 +45,7 @@ export default function SettingsPage() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://103.236.194.106:8000/api/upload", {
+      const res = await fetch(`${API_BASE}/api/upload`, {
         method: "POST",
         body: formData,
       });

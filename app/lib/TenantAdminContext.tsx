@@ -19,7 +19,7 @@ import type {
   Renter,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // ─── Seed data ────────────────────────────────────────────────────────────────
 
@@ -271,7 +271,35 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
       setCurrentRenter(renter);
     }
 
-    setReady(true);
+    // Fetch from backend
+    const searchParams = new URLSearchParams(window.location.search);
+    const tenantParam = searchParams.get('tenant');
+    const qs = tenantParam ? `?tenant=${encodeURIComponent(tenantParam)}` : '';
+
+    fetch(`${API_BASE}/api/config${qs}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.branding) {
+          const fetchedSettings: StoreSettings = {
+            storeName: data.branding.name || "",
+            logo: data.branding.logo || "",
+            primaryColor: data.branding.primaryColor || "#D32F2F",
+            font: data.branding.font || "Inter",
+            bannerTitle: data.theme?.homepageSections?.[0]?.props?.title || "",
+            bannerSubtitle: data.theme?.homepageSections?.[0]?.props?.subtitle || "",
+            contactEmail: data.contact?.email || "",
+            contactPhone: data.contact?.phone || "",
+            address: data.contact?.address || "",
+            features: data.features || { reviews: false, chat: false, loyaltyProgram: false },
+          };
+          setSettings(fetchedSettings);
+          save(KEYS.settings, fetchedSettings);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch initial config", err))
+      .finally(() => {
+        setReady(true);
+      });
   }, []);
 
   // ── Auth ────────────────────────────────────────────────────────────────────
@@ -547,7 +575,11 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
       save(KEYS.settings, next);
 
       try {
-        await fetch(`${API_BASE}/api/config`, {
+        const searchParams = new URLSearchParams(window.location.search);
+        const tenantParam = searchParams.get('tenant');
+        const qs = tenantParam ? `?tenant=${encodeURIComponent(tenantParam)}` : '';
+
+        await fetch(`${API_BASE}/api/config${qs}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",

@@ -578,11 +578,13 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
         const searchParams = new URLSearchParams(window.location.search);
         const tenantParam = searchParams.get('tenant');
         const qs = tenantParam ? `?tenant=${encodeURIComponent(tenantParam)}` : '';
+        const token = localStorage.getItem("ikna_admin_token");
 
         await fetch(`${API_BASE}/api/config${qs}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
           },
           body: JSON.stringify(patch),
         });

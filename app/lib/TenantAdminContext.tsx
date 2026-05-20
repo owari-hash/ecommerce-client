@@ -305,11 +305,43 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
       .catch((err) => console.error("Failed to fetch initial config", err));
   }, []);
 
+  const fetchData = useCallback(async (tokenOverride?: string) => {
+    const token = tokenOverride || localStorage.getItem("ikna_admin_token");
+    if (!token) return;
+
+    try {
+      const [catRes, prodRes] = await Promise.all([
+        fetch(`${API_BASE}/api/categories`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/products`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+
+      if (catRes.ok) {
+        const catBody = await catRes.json();
+        if (catBody?.data) {
+          setCategories(catBody.data);
+          save(KEYS.categories, catBody.data);
+        }
+      }
+
+      if (prodRes.ok) {
+        const prodBody = await prodRes.json();
+        if (prodBody?.data) {
+          setProducts(prodBody.data);
+          save(KEYS.products, prodBody.data);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch products and categories from backend", err);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchConfig().finally(() => {
-      setReady(true);
-    });
-  }, [fetchConfig]);
+    fetchConfig()
+      .then(() => fetchData())
+      .finally(() => {
+        setReady(true);
+      });
+  }, [fetchConfig, fetchData]);
 
   // ── Auth ────────────────────────────────────────────────────────────────────
 
@@ -334,6 +366,7 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
           
           // Fetch settings immediately for this user's tenant
           await fetchConfig(token);
+          await fetchData(token);
 
           const tenantUser: TenantUser = {
             id: user.id,
@@ -400,7 +433,7 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
 
       return false;
     },
-    [users, renters, fetchConfig]
+    [users, renters, fetchConfig, fetchData]
   );
 
   const logout = useCallback(() => {
@@ -483,59 +516,159 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
   // ── Products CRUD ────────────────────────────────────────────────────────────
 
   const addProduct = useCallback(
-    (p: Omit<Product, "id" | "createdAt">) => {
+    async (p: Omit<Product, "id" | "createdAt">) => {
+      const token = localStorage.getItem("ikna_admin_token");
+      if (token) {
+        try {
+          const res = await fetch(`${API_BASE}/api/products`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(p),
+          });
+          if (res.ok) {
+            await fetchData(token);
+            return;
+          }
+        } catch (e) {
+          console.error("Backend addProduct failed, falling back to local:", e);
+        }
+      }
+
       const next = [...products, { ...p, id: `p${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10) }];
       setProducts(next);
       save(KEYS.products, next);
     },
-    [products]
+    [products, fetchData]
   );
 
   const updateProduct = useCallback(
-    (id: string, patch: Partial<Omit<Product, "id">>) => {
+    async (id: string, patch: Partial<Omit<Product, "id">>) => {
+      const token = localStorage.getItem("ikna_admin_token");
+      if (token) {
+        try {
+          const res = await fetch(`${API_BASE}/api/products/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(patch),
+          });
+          if (res.ok) {
+            await fetchData(token);
+            return;
+          }
+        } catch (e) {
+          console.error("Backend updateProduct failed, falling back to local:", e);
+        }
+      }
+
       const next = products.map((p) => (p.id === id ? { ...p, ...patch } : p));
       setProducts(next);
       save(KEYS.products, next);
     },
-    [products]
+    [products, fetchData]
   );
 
   const deleteProduct = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      const token = localStorage.getItem("ikna_admin_token");
+      if (token) {
+        try {
+          const res = await fetch(`${API_BASE}/api/products/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            await fetchData(token);
+            return;
+          }
+        } catch (e) {
+          console.error("Backend deleteProduct failed, falling back to local:", e);
+        }
+      }
+
       const next = products.filter((p) => p.id !== id);
       setProducts(next);
       save(KEYS.products, next);
     },
-    [products]
+    [products, fetchData]
   );
 
   // ── Categories CRUD ──────────────────────────────────────────────────────────
 
   const addCategory = useCallback(
-    (c: Omit<Category, "id" | "createdAt">) => {
+    async (c: Omit<Category, "id" | "createdAt">) => {
+      const token = localStorage.getItem("ikna_admin_token");
+      if (token) {
+        try {
+          const res = await fetch(`${API_BASE}/api/categories`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(c),
+          });
+          if (res.ok) {
+            await fetchData(token);
+            return;
+          }
+        } catch (e) {
+          console.error("Backend addCategory failed, falling back to local:", e);
+        }
+      }
+
       const next = [...categories, { ...c, id: `cat${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10) }];
       setCategories(next);
       save(KEYS.categories, next);
     },
-    [categories]
+    [categories, fetchData]
   );
 
   const updateCategory = useCallback(
-    (id: string, patch: Partial<Omit<Category, "id">>) => {
+    async (id: string, patch: Partial<Omit<Category, "id">>) => {
+      const token = localStorage.getItem("ikna_admin_token");
+      if (token) {
+        try {
+          const res = await fetch(`${API_BASE}/api/categories/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(patch),
+          });
+          if (res.ok) {
+            await fetchData(token);
+            return;
+          }
+        } catch (e) {
+          console.error("Backend updateCategory failed, falling back to local:", e);
+        }
+      }
+
       const next = categories.map((c) => (c.id === id ? { ...c, ...patch } : c));
       setCategories(next);
       save(KEYS.categories, next);
     },
-    [categories]
+    [categories, fetchData]
   );
 
   const deleteCategory = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      const token = localStorage.getItem("ikna_admin_token");
+      if (token) {
+        try {
+          const res = await fetch(`${API_BASE}/api/categories/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            await fetchData(token);
+            return;
+          }
+        } catch (e) {
+          console.error("Backend deleteCategory failed, falling back to local:", e);
+        }
+      }
+
       const next = categories.filter((c) => c.id !== id);
       setCategories(next);
       save(KEYS.categories, next);
     },
-    [categories]
+    [categories, fetchData]
   );
 
   // ── Brands CRUD ──────────────────────────────────────────────────────────────

@@ -150,6 +150,11 @@ const SEED_SETTINGS: StoreSettings = {
   contactPhone: "7700-1234",
   address: "Улаанбаатар хот, Сүхбаатар дүүрэг",
   features: { reviews: true, chat: false, loyaltyProgram: false },
+  promoVisible: true,
+  promoLabel: "Хязгаартай",
+  promoDiscount: "30% OFF",
+  promoSubtitle: "",
+  promoHref: "/",
 };
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
@@ -303,6 +308,11 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
             contactPhone: data.contact?.phone || "",
             address: data.contact?.address || "",
             features: data.features || { reviews: false, chat: false, loyaltyProgram: false },
+            promoVisible: data.promo?.visible ?? true,
+            promoLabel: data.promo?.label ?? "Хязгаартай",
+            promoDiscount: data.promo?.discount ?? "30% OFF",
+            promoSubtitle: data.promo?.subtitle ?? "",
+            promoHref: data.promo?.href ?? "/",
           };
           setSettings(fetchedSettings);
           save(KEYS.settings, fetchedSettings);

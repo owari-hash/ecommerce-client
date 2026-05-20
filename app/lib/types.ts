@@ -140,4 +140,9 @@ export type StoreSettings = {
     chat: boolean;
     loyaltyProgram: boolean;
   };
+  promoVisible: boolean;
+  promoLabel: string;
+  promoDiscount: string;
+  promoSubtitle: string;
+  promoHref: string;
 };

@@ -232,6 +232,82 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Promo block */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+              </svg>
+              Промо блок (мэгамэню)
+            </h3>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-xs text-slate-500">Харагдах</span>
+              <div className="relative flex-shrink-0">
+                <input
+                  type="checkbox" className="sr-only peer"
+                  checked={draft.promoVisible ?? true}
+                  onChange={(e) => setDraftField("promoVisible", e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-checked:bg-[#D32F2F] rounded-full transition-colors" />
+                <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+              </div>
+            </label>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Шошго (жиш: Хязгаартай)</label>
+              <input
+                type="text" value={draft.promoLabel ?? ""}
+                onChange={(e) => setDraftField("promoLabel", e.target.value)}
+                placeholder="Хязгаартай"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Хямдрал (жиш: 30% OFF)</label>
+              <input
+                type="text" value={draft.promoDiscount ?? ""}
+                onChange={(e) => setDraftField("promoDiscount", e.target.value)}
+                placeholder="30% OFF"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Дэд текст</label>
+              <input
+                type="text" value={draft.promoSubtitle ?? ""}
+                onChange={(e) => setDraftField("promoSubtitle", e.target.value)}
+                placeholder="Бүх электрон бараа"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Холбоос (жиш: /electronics)</label>
+              <input
+                type="text" value={draft.promoHref ?? ""}
+                onChange={(e) => setDraftField("promoHref", e.target.value)}
+                placeholder="/electronics"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+              />
+            </div>
+          </div>
+          {/* Live preview */}
+          {(draft.promoVisible ?? true) && (
+            <div className="rounded-xl bg-gradient-to-br from-red-500 via-red-600 to-red-700 text-white p-4 relative overflow-hidden max-w-xs">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="relative">
+                <p className="text-[10px] font-black uppercase opacity-80 tracking-wider">{draft.promoLabel || "Хязгаартай"}</p>
+                <p className="text-xl font-black mt-1">{draft.promoDiscount || "30% OFF"}</p>
+                {draft.promoSubtitle && <p className="text-sm opacity-90">{draft.promoSubtitle}</p>}
+                <span className="inline-block mt-3 bg-white text-red-600 px-3 py-1.5 rounded-lg text-xs font-black">Харах →</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Features */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-3">
           <h3 className="font-bold text-slate-800 flex items-center gap-2">

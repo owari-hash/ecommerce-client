@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTenantAdmin } from "../../lib/TenantAdminContext";
+import { useTenantAdmin, API_BASE } from "../../lib/TenantAdminContext";
 import type { Category } from "../../lib/types";
 
 type CategoryForm = Omit<Category, "id" | "createdAt">;
@@ -20,6 +20,31 @@ export default function CategoriesPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<CategoryForm>(EMPTY_FORM);
   const [search, setSearch] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const token = localStorage.getItem("ikna_admin_token");
+      const res = await fetch(`${API_BASE}/api/upload`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      if (res.ok) {
+        const body = await res.json();
+        setField("image", body.url);
+      }
+    } catch (err) {
+      console.error("Image upload failed:", err);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const filtered = categories.filter(
     (c) =>
@@ -89,14 +114,25 @@ export default function CategoriesPage() {
               <div className="h-1.5 bg-gradient-to-r from-[#D32F2F] to-[#EF5350]" />
               <div className="p-5">
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="min-w-0">
-                    <p className="font-bold text-slate-800 truncate">{cat.name}</p>
-                    <p className="text-xs text-slate-400 font-mono mt-0.5">/{cat.slug}</p>
-                    {cat.parentId && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        ↳ {parentName(cat.parentId)}
-                      </p>
+                  <div className="flex items-start gap-3 min-w-0">
+                    {cat.image ? (
+                      <img
+                        src={cat.image}
+                        alt={cat.name}
+                        className="w-12 h-12 rounded-xl object-cover border border-slate-100 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-xl shrink-0">📁</div>
                     )}
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-800 truncate">{cat.name}</p>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">/{cat.slug}</p>
+                      {cat.parentId && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          ↳ {parentName(cat.parentId)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <span className={`text-xs font-semibold px-2 py-1 rounded-full flex-shrink-0 ${cat.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
                     {cat.status === "active" ? "Идэвхтэй" : "Идэвхгүй"}
@@ -190,6 +226,39 @@ export default function CategoriesPage() {
                     ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Зураг</label>
+                {form.image && (
+                  <img
+                    src={form.image}
+                    alt="preview"
+                    className="w-full h-36 object-cover rounded-xl mb-2 border border-slate-100"
+                  />
+                )}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={form.image}
+                    onChange={(e) => setField("image", e.target.value)}
+                    placeholder="Зургийн холбоос (URL)"
+                    className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+                  />
+                  <label className={`cursor-pointer flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${uploading ? "bg-slate-100 text-slate-400 cursor-not-allowed" : "bg-slate-100 hover:bg-slate-200 text-slate-700"}`}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {uploading ? "Байршуулж байна..." : "Оруулах"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      disabled={uploading}
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Статус</label>
                 <div className="flex gap-2">

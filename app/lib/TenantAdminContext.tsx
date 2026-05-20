@@ -245,10 +245,15 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
     const sessionId = load<string | null>(KEYS.session, null);
     const renterSessionId = load<string | null>(KEYS.renterSession, null);
 
+    // Wipe any previously seeded mock categories/products so real backend data takes over
+    const storedCats = load<Category[]>(KEYS.categories, []);
+    const storedProds = load<Product[]>(KEYS.products, []);
+    const looksLikeSeed = (ids: string[]) => ids.some((id) => /^(cat|p)\d/.test(id));
+    if (looksLikeSeed(storedCats.map((c) => c.id))) localStorage.removeItem(KEYS.categories);
+    if (looksLikeSeed(storedProds.map((p) => p.id))) localStorage.removeItem(KEYS.products);
+
     if (!localStorage.getItem(KEYS.users)) save(KEYS.users, SEED_USERS);
     if (!localStorage.getItem(KEYS.renters)) save(KEYS.renters, SEED_RENTERS);
-    if (!localStorage.getItem(KEYS.products)) save(KEYS.products, SEED_PRODUCTS);
-    if (!localStorage.getItem(KEYS.categories)) save(KEYS.categories, SEED_CATEGORIES);
     if (!localStorage.getItem(KEYS.brands)) save(KEYS.brands, SEED_BRANDS);
     if (!localStorage.getItem(KEYS.orders)) save(KEYS.orders, SEED_ORDERS);
     if (!localStorage.getItem(KEYS.customers)) save(KEYS.customers, SEED_CUSTOMERS);
@@ -256,8 +261,9 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
 
     setUsers(storedUsers);
     setRenters(storedRenters);
-    setProducts(load<Product[]>(KEYS.products, SEED_PRODUCTS));
-    setCategories(load<Category[]>(KEYS.categories, SEED_CATEGORIES));
+    // Categories and products always come from the backend — never seed localStorage
+    setProducts(load<Product[]>(KEYS.products, []));
+    setCategories(load<Category[]>(KEYS.categories, []));
     setBrands(load<Brand[]>(KEYS.brands, SEED_BRANDS));
     setOrders(load<Order[]>(KEYS.orders, SEED_ORDERS));
     setCustomers(load<Customer[]>(KEYS.customers, SEED_CUSTOMERS));
@@ -314,6 +320,11 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
         fetch(`${API_BASE}/api/categories`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_BASE}/api/products`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
+
+      if (catRes.status === 401 || prodRes.status === 401) {
+        localStorage.removeItem("ikna_admin_token");
+        return;
+      }
 
       if (catRes.ok) {
         const catBody = await catRes.json();

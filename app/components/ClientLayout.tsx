@@ -29,7 +29,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="md:ml-[260px] min-h-screen bg-[#f1f5f9] flex flex-col">
         <TopBar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 p-4 md:p-6 animate-fade-in">{children}</main>
+        <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
     </>
   );

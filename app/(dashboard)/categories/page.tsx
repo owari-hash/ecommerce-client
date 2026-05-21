@@ -14,6 +14,16 @@ function slugify(s: string) {
   return s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
+function resolveImageUrl(url: string) {
+  if (!url) return "";
+  const uploadMatch = url.match(/\/upload\/(.+)$/);
+  if (uploadMatch) {
+    return `${API_BASE}/upload/${uploadMatch[1]}`;
+  }
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+  return url.startsWith("/") ? `${API_BASE}${url}` : `${API_BASE}/upload/${url}`;
+}
+
 export default function CategoriesPage() {
   const { categories, addCategory, updateCategory, deleteCategory } = useTenantAdmin();
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
@@ -37,7 +47,8 @@ export default function CategoriesPage() {
       });
       if (res.ok) {
         const body = await res.json();
-        setField(field, body?.data?.path ? `${API_BASE}${body.data.path}` : "");
+        const imageUrl = body?.url || (body?.data?.path ? `${API_BASE}${body.data.path}` : "");
+        setField(field, imageUrl);
       }
     } catch (err) {
       console.error("Image upload failed:", err);
@@ -136,7 +147,7 @@ export default function CategoriesPage() {
                   <div className="flex items-start gap-3 min-w-0">
                     {cat.image ? (
                       <img
-                        src={cat.image}
+                        src={resolveImageUrl(cat.image)}
                         alt={cat.name}
                         className="w-12 h-12 rounded-xl object-cover border border-slate-100 shrink-0"
                       />
@@ -316,7 +327,7 @@ export default function CategoriesPage() {
                         {form.image ? (
                           <>
                             <img
-                              src={form.image}
+                              src={resolveImageUrl(form.image)}
                               alt="preview"
                               className="w-full h-full object-cover"
                             />
@@ -370,7 +381,7 @@ export default function CategoriesPage() {
                           {form.banner ? (
                             <>
                               <img
-                                src={form.banner}
+                                src={resolveImageUrl(form.banner)}
                                 alt="preview"
                                 className="w-full h-full object-cover"
                               />

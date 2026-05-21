@@ -18,6 +18,16 @@ function slugify(s: string) {
   return s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 }
 
+function resolveImageUrl(url: string) {
+  if (!url) return "";
+  const uploadMatch = url.match(/\/upload\/(.+)$/);
+  if (uploadMatch) {
+    return `${API_BASE}/upload/${uploadMatch[1]}`;
+  }
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+  return url.startsWith("/") ? `${API_BASE}${url}` : `${API_BASE}/upload/${url}`;
+}
+
 const STATUS_STYLE: Record<ProductStatus, string> = {
   active: "bg-emerald-50 text-emerald-700",
   inactive: "bg-slate-100 text-slate-400",
@@ -125,9 +135,9 @@ export default function ProductsPage() {
         });
         if (res.ok) {
           const body = await res.json();
-          const path = body?.data?.path;
-          if (path) {
-            urls.push(`${API_BASE}${path}`);
+          const imageUrl = body?.url || (body?.data?.path ? `${API_BASE}${body.data.path}` : "");
+          if (imageUrl) {
+            urls.push(imageUrl);
           }
         }
       }
@@ -237,7 +247,7 @@ export default function ProductsPage() {
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
                         {p.images[0] ? (
-                          <img src={p.images[0]} alt={p.name} className="w-10 h-10 object-cover rounded-lg border border-slate-100 flex-shrink-0" />
+                          <img src={resolveImageUrl(p.images[0])} alt={p.name} className="w-10 h-10 object-cover rounded-lg border border-slate-100 flex-shrink-0" />
                         ) : (
                           <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
                             <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -515,7 +525,7 @@ export default function ProductsPage() {
                           {form.images.map((url, idx) => (
                             <div key={idx} className="relative group shrink-0">
                               <img
-                                src={url}
+                                src={resolveImageUrl(url)}
                                 alt={`Зураг ${idx + 1}`}
                                 className="w-14 h-14 object-cover rounded-lg border border-slate-200"
                               />

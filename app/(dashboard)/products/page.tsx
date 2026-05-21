@@ -102,14 +102,22 @@ export default function ProductsPage() {
     const toUpload = files.slice(0, remaining);
     setUploadingImages(true);
     try {
+      const token = localStorage.getItem("ikna_admin_token");
       const urls: string[] = [];
       for (const file of toUpload) {
         const fd = new FormData();
         fd.append("file", file);
-        const res = await fetch(`${API_BASE}/api/upload`, { method: "POST", body: fd });
+        const res = await fetch(`${API_BASE}/api/upload`, {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd,
+        });
         if (res.ok) {
-          const data = await res.json();
-          if (data.url) urls.push(data.url);
+          const body = await res.json();
+          const path = body?.data?.path;
+          if (path) {
+            urls.push(`${API_BASE}${path}`);
+          }
         }
       }
       if (urls.length) setField("images", [...form.images, ...urls]);

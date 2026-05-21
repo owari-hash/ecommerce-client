@@ -29,6 +29,7 @@ export type Category = {
   slug: string;
   parentId: string | null;
   image: string;
+  banner?: string;
   status: "active" | "inactive";
   createdAt: string;
 };

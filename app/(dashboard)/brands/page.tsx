@@ -165,8 +165,8 @@ export default function BrandsPage() {
       {/* Modal */}
       {modal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in overflow-y-auto max-h-[90vh]">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fade-in relative max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
               <h3 className="font-bold text-slate-800 text-lg">
                 {modal === "add" ? "Шинэ брэнд нэмэх" : "Брэнд засах"}
               </h3>
@@ -176,74 +176,76 @@ export default function BrandsPage() {
                 </svg>
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Брэндийн нэр *</label>
-                <input
-                  type="text" required value={form.name}
-                  onChange={(e) => { setField("name", e.target.value); setField("slug", slugify(e.target.value)); }}
-                  placeholder="Samsung"
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Slug</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">/</span>
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-6 py-5 overflow-y-auto flex-1 space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Брэндийн нэр *</label>
                   <input
-                    type="text" value={form.slug}
-                    onChange={(e) => setField("slug", slugify(e.target.value))}
-                    className="w-full border border-slate-200 rounded-xl pl-6 pr-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+                    type="text" required value={form.name}
+                    onChange={(e) => { setField("name", e.target.value); setField("slug", slugify(e.target.value)); }}
+                    placeholder="Samsung"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Logo URL</label>
-                <input
-                  type="text" value={form.logo}
-                  onChange={(e) => setField("logo", e.target.value)}
-                  placeholder="https://..."
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-                />
-                {form.logo && (
-                  <div className="mt-2 h-16 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={form.logo}
-                      alt="preview"
-                      className="h-12 object-contain"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Slug</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">/</span>
+                    <input
+                      type="text" value={form.slug}
+                      onChange={(e) => setField("slug", slugify(e.target.value))}
+                      className="w-full border border-slate-200 rounded-xl pl-6 pr-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
                     />
                   </div>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Брэндийн тухай</label>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => setField("description", e.target.value)}
-                  placeholder="Брэндийн товч танилцуулга..."
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Статус</label>
-                <div className="flex gap-2">
-                  {(["active", "inactive"] as const).map((s) => (
-                    <button
-                      key={s} type="button" onClick={() => setField("status", s)}
-                      className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
-                        form.status === s
-                          ? s === "active" ? "border-emerald-500 text-emerald-700 bg-emerald-50" : "border-slate-400 text-slate-600 bg-slate-100"
-                          : "border-slate-200 text-slate-400 hover:border-slate-300"
-                      }`}
-                    >
-                      {s === "active" ? "Идэвхтэй" : "Идэвхгүй"}
-                    </button>
-                  ))}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Logo URL</label>
+                  <input
+                    type="text" value={form.logo}
+                    onChange={(e) => setField("logo", e.target.value)}
+                    placeholder="https://..."
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                  />
+                  {form.logo && (
+                    <div className="mt-2 h-16 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden">
+                      <img
+                        src={form.logo}
+                        alt="preview"
+                        className="h-12 object-contain"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Брэндийн тухай</label>
+                  <textarea
+                    rows={3}
+                    value={form.description}
+                    onChange={(e) => setField("description", e.target.value)}
+                    placeholder="Брэндийн товч танилцуулга..."
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 resize-none bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Статус</label>
+                  <div className="flex gap-2">
+                    {(["active", "inactive"] as const).map((s) => (
+                      <button
+                        key={s} type="button" onClick={() => setField("status", s)}
+                        className={`flex-1 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
+                          form.status === s
+                            ? s === "active" ? "border-emerald-500 text-emerald-700 bg-emerald-50" : "border-slate-400 text-slate-600 bg-slate-100"
+                            : "border-slate-200 text-slate-400 hover:border-slate-300 bg-white"
+                        }`}
+                      >
+                        {s === "active" ? "Идэвхтэй" : "Идэвхгүй"}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3 pt-2">
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl shrink-0 flex gap-3 mt-auto">
                 <button type="button" onClick={closeModal} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">Болих</button>
                 <button type="submit" className="flex-1 py-2.5 rounded-xl bg-[#D32F2F] hover:bg-[#B71C1C] text-white text-sm font-semibold transition-colors shadow-sm">
                   {modal === "add" ? "Үүсгэх" : "Хадгалах"}

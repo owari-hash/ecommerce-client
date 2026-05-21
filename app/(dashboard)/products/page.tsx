@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTenantAdmin, API_BASE } from "../../lib/TenantAdminContext";
 import type { Product, ProductStatus } from "../../lib/types";
 
@@ -51,6 +51,17 @@ export default function ProductsPage() {
   const [filterStatus, setFilterStatus] = useState<ProductStatus | "all">("all");
   const [uploadingImages, setUploadingImages] = useState(false);
   const imageFileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (modal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [modal]);
 
   const filtered = visibleProducts.filter((p) => {
     const matchSearch =
@@ -307,8 +318,8 @@ export default function ProductsPage() {
       {/* Modal */}
       {modal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl animate-fade-in overflow-y-auto max-h-[90vh]">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl animate-fade-in relative max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
               <h3 className="font-bold text-slate-800 text-lg">
                 {modal === "add" ? "Шинэ бүтээгдэхүүн нэмэх" : "Бүтээгдэхүүн засах"}
               </h3>
@@ -319,232 +330,256 @@ export default function ProductsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Нэр *</label>
-                  <input
-                    type="text" required value={form.name}
-                    onChange={(e) => { setField("name", e.target.value); setField("slug", slugify(e.target.value)); }}
-                    placeholder="Бүтээгдэхүүний нэр"
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Slug</label>
-                  <input
-                    type="text" value={form.slug}
-                    onChange={(e) => setField("slug", slugify(e.target.value))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Тайлбар</label>
-                <textarea
-                  value={form.description} rows={2}
-                  onChange={(e) => setField("description", e.target.value)}
-                  placeholder="Бүтээгдэхүүний дэлгэрэнгүй тайлбар"
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Үнэ *</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₮</span>
-                    <input
-                      type="number" required min={0} value={form.price}
-                      onChange={(e) => setField("price", Number(e.target.value))}
-                      className="w-full border border-slate-200 rounded-xl pl-7 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Хөнгөлөлтийн үнэ</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₮</span>
-                    <input
-                      type="number" min={0}
-                      value={form.salePrice ?? ""}
-                      onChange={(e) => setField("salePrice", e.target.value ? Number(e.target.value) : null)}
-                      className="w-full border border-slate-200 rounded-xl pl-7 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-                      placeholder="—"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Нөөц</label>
-                  <input
-                    type="number" min={0} value={form.stock}
-                    onChange={(e) => setField("stock", Number(e.target.value))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ангилал</label>
-                  <select
-                    value={form.categoryId}
-                    onChange={(e) => setField("categoryId", e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-                  >
-                    <option value="">— Сонгох —</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Брэнд</label>
-                  <select
-                    value={form.brandId}
-                    onChange={(e) => setField("brandId", e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-                  >
-                    <option value="">— Сонгох —</option>
-                    {brands.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Owner-only: assign to renter */}
-              {!isRenter && currentUser && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Түрээслэгч</label>
-                  <select
-                    value={form.renterId ?? ""}
-                    onChange={(e) => setField("renterId", e.target.value || null)}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-                  >
-                    <option value="">Дэлгүүрийн өөрийн бараа</option>
-                    {renters.map((r) => (
-                      <option key={r.id} value={r.id}>{r.storeName} ({r.name})</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Статус</label>
-                  <div className="flex gap-2">
-                    {(["active", "draft", "inactive"] as const).map((s) => (
-                      <button
-                        key={s} type="button" onClick={() => setField("status", s)}
-                        className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-all ${
-                          form.status === s
-                            ? s === "active" ? "border-emerald-500 text-emerald-700 bg-emerald-50"
-                              : s === "draft" ? "border-yellow-400 text-yellow-700 bg-yellow-50"
-                              : "border-slate-400 text-slate-600 bg-slate-100"
-                            : "border-slate-200 text-slate-400 hover:border-slate-300"
-                        }`}
-                      >
-                        {STATUS_LABEL[s]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-end">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className="relative">
-                      <input type="checkbox" className="sr-only peer" checked={form.featured} onChange={(e) => setField("featured", e.target.checked)} />
-                      <div className="w-10 h-5 bg-slate-200 peer-checked:bg-[#D32F2F] rounded-full transition-colors" />
-                      <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-6 py-5 overflow-y-auto flex-1 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column: General & Text Details */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Нэр *</label>
+                      <input
+                        type="text" required value={form.name}
+                        onChange={(e) => { setField("name", e.target.value); setField("slug", slugify(e.target.value)); }}
+                        placeholder="Бүтээгдэхүүний нэр"
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                      />
                     </div>
-                    <span className="text-sm text-slate-600">Онцлох бараа</span>
-                  </label>
-                </div>
-              </div>
 
-              {/* Image Upload */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-semibold text-slate-700">
-                    Зураг
-                    <span className="ml-1.5 text-xs font-normal text-slate-400">(заавал биш, дээд тал нь {MAX_IMAGES})</span>
-                  </label>
-                  <span className="text-xs text-slate-400">{form.images.length}/{MAX_IMAGES}</span>
-                </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Slug</label>
+                      <input
+                        type="text" value={form.slug}
+                        onChange={(e) => setField("slug", slugify(e.target.value))}
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                      />
+                    </div>
 
-                {/* Thumbnails */}
-                {form.images.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {form.images.map((url, idx) => (
-                      <div key={idx} className="relative group">
-                        <img
-                          src={url}
-                          alt={`Зураг ${idx + 1}`}
-                          className="w-16 h-16 object-cover rounded-xl border border-slate-200"
-                        />
-                        {idx === 0 && (
-                          <span className="absolute -top-1 -left-1 bg-[#D32F2F] text-white text-[9px] font-bold px-1 py-0.5 rounded-md leading-none">Гол</span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeImage(idx)}
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Тайлбар</label>
+                      <textarea
+                        value={form.description} rows={3}
+                        onChange={(e) => setField("description", e.target.value)}
+                        placeholder="Бүтээгдэхүүний дэлгэрэнгүй тайлбар..."
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 resize-none bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Статус</label>
+                      <div className="flex gap-2">
+                        {(["active", "draft", "inactive"] as const).map((s) => (
+                          <button
+                            key={s} type="button" onClick={() => setField("status", s)}
+                            className={`flex-1 py-2 rounded-xl text-xs font-semibold border-2 transition-all ${
+                              form.status === s
+                                ? s === "active" ? "border-emerald-500 text-emerald-700 bg-emerald-50"
+                                  : s === "draft" ? "border-yellow-400 text-yellow-700 bg-yellow-50"
+                                  : "border-slate-400 text-slate-600 bg-slate-100"
+                                : "border-slate-200 text-slate-400 hover:border-slate-300 bg-white"
+                            }`}
+                          >
+                            {STATUS_LABEL[s]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center pt-2">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className="relative">
+                          <input type="checkbox" className="sr-only peer" checked={form.featured} onChange={(e) => setField("featured", e.target.checked)} />
+                          <div className="w-10 h-5 bg-slate-200 peer-checked:bg-[#D32F2F] rounded-full transition-colors" />
+                          <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+                        </div>
+                        <span className="text-sm font-semibold text-slate-600">Онцлох бүтээгдэхүүн болгох</span>
+                      </label>
+                    </div>
+
+                    {/* Owner-only: assign to renter */}
+                    {!isRenter && currentUser && (
+                      <div className="pt-2">
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Түрээслэгч эзэмшигч</label>
+                        <select
+                          value={form.renterId ?? ""}
+                          onChange={(e) => setField("renterId", e.target.value || null)}
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
                         >
-                          <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Upload zone */}
-                {form.images.length < MAX_IMAGES && (
-                  <div
-                    className="relative border-2 border-dashed border-slate-200 hover:border-[#D32F2F]/40 rounded-xl p-4 text-center cursor-pointer transition-colors"
-                    onClick={() => !uploadingImages && imageFileRef.current?.click()}
-                  >
-                    <input
-                      ref={imageFileRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      multiple
-                      className="hidden"
-                      onChange={handleImageUpload}
-                      disabled={uploadingImages}
-                    />
-                    {uploadingImages ? (
-                      <div className="flex items-center justify-center gap-2 py-1">
-                        <svg className="w-4 h-4 animate-spin text-[#D32F2F]" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        <span className="text-sm text-slate-400">Хуулж байна...</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1 py-1">
-                        <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                        </svg>
-                        <p className="text-sm text-slate-400">
-                          Зураг сонгох
-                          <span className="ml-1 text-xs text-slate-300">· JPG, PNG, WEBP</span>
-                        </p>
-                        <p className="text-xs text-slate-300">{MAX_IMAGES - form.images.length} зураг нэмж болно</p>
+                          <option value="">Дэлгүүрийн өөрийн бараа</option>
+                          {renters.map((r) => (
+                            <option key={r.id} value={r.id}>{r.storeName} ({r.name})</option>
+                          ))}
+                        </select>
                       </div>
                     )}
                   </div>
-                )}
+
+                  {/* Right Column: Numbers & Media */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Үндсэн үнэ *</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₮</span>
+                          <input
+                            type="number" required min={0} value={form.price || ""}
+                            onChange={(e) => setField("price", Number(e.target.value))}
+                            className="w-full border border-slate-200 rounded-xl pl-7 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Хөнгөлөлттэй үнэ</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₮</span>
+                          <input
+                            type="number" min={0}
+                            value={form.salePrice ?? ""}
+                            onChange={(e) => setField("salePrice", e.target.value ? Number(e.target.value) : null)}
+                            className="w-full border border-slate-200 rounded-xl pl-7 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                            placeholder="Хямдралгүй"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Нөөцийн тоо</label>
+                        <input
+                          type="number" min={0} value={form.stock}
+                          onChange={(e) => setField("stock", Number(e.target.value))}
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Ангилал</label>
+                        <select
+                          value={form.categoryId}
+                          onChange={(e) => setField("categoryId", e.target.value)}
+                          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                        >
+                          <option value="">— Сонгох —</option>
+                          {categories.filter((c) => !c.parentId).map((root) => {
+                            const subs = categories.filter((c) => c.parentId === root.id);
+                            return (
+                              <optgroup key={root.id} label={root.name}>
+                                <option value={root.id}>{root.name} (Үндсэн)</option>
+                                {subs.map((sub) => (
+                                  <option key={sub.id} value={sub.id}>
+                                    {"\u00A0\u00A0↳ "}{sub.name}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            );
+                          })}
+                          {categories.filter((c) => c.parentId && !categories.some((parent) => parent.id === c.parentId)).length > 0 && (
+                            <optgroup label="Бусад">
+                              {categories
+                                .filter((c) => c.parentId && !categories.some((parent) => parent.id === c.parentId))
+                                .map((c) => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </optgroup>
+                          )}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Брэнд</label>
+                      <select
+                        value={form.brandId}
+                        onChange={(e) => setField("brandId", e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                      >
+                        <option value="">— Сонгох —</option>
+                        {brands.map((b) => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Image Upload Manager */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-semibold text-slate-700">
+                          Бүтээгдэхүүний зураг
+                          <span className="ml-1.5 text-xs font-normal text-slate-400">(дээд тал нь {MAX_IMAGES})</span>
+                        </label>
+                        <span className="text-xs text-slate-400 font-semibold">{form.images.length}/{MAX_IMAGES}</span>
+                      </div>
+
+                      {/* Thumbnails */}
+                      {form.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                          {form.images.map((url, idx) => (
+                            <div key={idx} className="relative group shrink-0">
+                              <img
+                                src={url}
+                                alt={`Зураг ${idx + 1}`}
+                                className="w-14 h-14 object-cover rounded-lg border border-slate-200"
+                              />
+                              {idx === 0 && (
+                                <span className="absolute -top-1 -left-1 bg-[#D32F2F] text-white text-[9px] font-bold px-1 py-0.5 rounded-md leading-none">Гол</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removeImage(idx)}
+                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 text-slate-500 hover:text-red-500"
+                              >
+                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Upload zone */}
+                      {form.images.length < MAX_IMAGES && (
+                        <div
+                          className="relative border-2 border-dashed border-slate-200 hover:border-[#D32F2F]/40 rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-50 hover:bg-slate-100/50"
+                          onClick={() => !uploadingImages && imageFileRef.current?.click()}
+                        >
+                          <input
+                            ref={imageFileRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            multiple
+                            className="hidden"
+                            onChange={handleImageUpload}
+                            disabled={uploadingImages}
+                          />
+                          {uploadingImages ? (
+                            <div className="flex items-center justify-center gap-2 py-1.5">
+                              <svg className="w-4 h-4 animate-spin text-[#D32F2F]" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                              <span className="text-sm text-slate-400 font-medium">Хуулж байна...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-1">
+                              <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                              </svg>
+                              <p className="text-xs font-semibold text-slate-500">Зураг оруулах (товших эсвэл чирэх)</p>
+                              <p className="text-[10px] text-slate-400 font-medium">JPG, PNG, WEBP · {MAX_IMAGES - form.images.length} зураг нэмэх боломжтой</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={closeModal} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
-                  Болих
-                </button>
+              {/* Action Buttons */}
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl shrink-0 flex gap-3 mt-auto">
+                <button type="button" onClick={closeModal} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">Болих</button>
                 <button type="submit" disabled={uploadingImages} className={`flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition-colors shadow-sm disabled:opacity-60 ${isRenter ? "bg-amber-500 hover:bg-amber-600" : "bg-[#D32F2F] hover:bg-[#B71C1C]"}`}>
-                  {modal === "add" ? "Нэмэх" : "Хадгалах"}
+                  {modal === "add" ? "Үүсгэх" : "Хадгалах"}
                 </button>
               </div>
             </form>

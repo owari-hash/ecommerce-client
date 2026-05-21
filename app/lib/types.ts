@@ -134,6 +134,21 @@ export type StoreLocation = {
   hours: string;
 };
 
+export type BannerSlide = {
+  href: string;
+  title: string;
+  subtitle: string;
+  emoji: string;
+  image: string;
+};
+
+export type BentoTile = {
+  label: string;
+  sub: string;
+  href: string;
+  image: string;
+};
+
 export type StoreSettings = {
   storeName: string;
   logo: string;
@@ -142,6 +157,9 @@ export type StoreSettings = {
   description: string;
   bannerTitle: string;
   bannerSubtitle: string;
+  bannerSlidesBig: BannerSlide[];
+  bannerSlidesSmall: BannerSlide[];
+  bentoTiles: BentoTile[];
   contactEmail: string;
   contactPhone: string;
   address: string;

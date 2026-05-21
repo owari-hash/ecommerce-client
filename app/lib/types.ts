@@ -126,11 +126,20 @@ export type Renter = {
 
 // ─── Store Settings ───────────────────────────────────────────────────────────
 
+export type StoreLocation = {
+  name: string;
+  district: string;
+  address: string;
+  phone: string;
+  hours: string;
+};
+
 export type StoreSettings = {
   storeName: string;
   logo: string;
   primaryColor: string;
   font: string;
+  description: string;
   bannerTitle: string;
   bannerSubtitle: string;
   contactEmail: string;
@@ -146,4 +155,5 @@ export type StoreSettings = {
   promoDiscount: string;
   promoSubtitle: string;
   promoHref: string;
+  locations: StoreLocation[];
 };

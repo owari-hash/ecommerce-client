@@ -144,6 +144,7 @@ const SEED_SETTINGS: StoreSettings = {
   logo: "",
   primaryColor: "#D32F2F",
   font: "Inter",
+  description: "",
   bannerTitle: "Хамгийн шилдэг бараанууд",
   bannerSubtitle: "Хямдрал, шинэ бараа, хүргэлт",
   contactEmail: "info@shop.mn",
@@ -155,6 +156,7 @@ const SEED_SETTINGS: StoreSettings = {
   promoDiscount: "30% OFF",
   promoSubtitle: "",
   promoHref: "/",
+  locations: [],
 };
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
@@ -302,6 +304,7 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
             logo: data.branding.logo || "",
             primaryColor: data.branding.primaryColor || "#D32F2F",
             font: data.branding.font || "Inter",
+            description: data.branding.description || "",
             bannerTitle: data.theme?.homepageSections?.[0]?.props?.title || "",
             bannerSubtitle: data.theme?.homepageSections?.[0]?.props?.subtitle || "",
             contactEmail: data.contact?.email || "",
@@ -313,6 +316,7 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
             promoDiscount: data.promo?.discount ?? "30% OFF",
             promoSubtitle: data.promo?.subtitle ?? "",
             promoHref: data.promo?.href ?? "/",
+            locations: Array.isArray(data.locations) ? data.locations : [],
           };
           setSettings(fetchedSettings);
           save(KEYS.settings, fetchedSettings);

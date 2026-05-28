@@ -161,6 +161,9 @@ const SEED_SETTINGS: StoreSettings = {
   promoSubtitle: "",
   promoHref: "/",
   locations: [],
+  posDbUri: "",
+  posBranchId: "",
+  posOrgId: "",
 };
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
@@ -325,6 +328,9 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
             promoSubtitle: data.promo?.subtitle ?? "",
             promoHref: data.promo?.href ?? "/",
             locations: Array.isArray(data.locations) ? data.locations : [],
+            posDbUri: data.posDbUri || "",
+            posBranchId: data.posBranchId || "",
+            posOrgId: data.posOrgId || "",
           };
           setSettings(fetchedSettings);
           save(KEYS.settings, fetchedSettings);

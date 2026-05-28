@@ -447,6 +447,51 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* POS Integration */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            POS Системийн Холболт (Заавал биш)
+          </h3>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">POS MongoDB Холболтын URI</label>
+              <input
+                type="text"
+                value={draft.posDbUri ?? ""}
+                onChange={(e) => setDraftField("posDbUri", e.target.value)}
+                placeholder="mongodb://127.0.0.1:27017/pos"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+              />
+              <p className="text-xs text-slate-400 mt-1">Орон нутгийн болон алсын POS системийн MongoDB холболтын мэдээлэл</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Салбарын ID (salbariinId)</label>
+              <input
+                type="text"
+                value={draft.posBranchId ?? ""}
+                onChange={(e) => setDraftField("posBranchId", e.target.value)}
+                placeholder="Жишээ: branch-001"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Байгууллагын ID (baiguullagiinId)</label>
+              <input
+                type="text"
+                value={draft.posOrgId ?? ""}
+                onChange={(e) => setDraftField("posOrgId", e.target.value)}
+                placeholder="Жишээ: org-999"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Save bar */}
         <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-4">
           {saved ? (

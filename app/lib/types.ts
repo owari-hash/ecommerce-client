@@ -19,6 +19,8 @@ export type Product = {
   /** null = store-owned product; string = renter id who owns it */
   renterId: string | null;
   createdAt: string;
+  isPosLinked?: boolean;
+  posProductCode?: string;
 };
 
 // ─── Category ─────────────────────────────────────────────────────────────────
@@ -175,4 +177,7 @@ export type StoreSettings = {
   promoSubtitle: string;
   promoHref: string;
   locations: StoreLocation[];
+  posDbUri?: string;
+  posBranchId?: string;
+  posOrgId?: string;
 };

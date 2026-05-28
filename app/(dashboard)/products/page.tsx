@@ -70,10 +70,12 @@ export default function ProductsPage() {
   const [posSearch, setPosSearch] = useState("");
   const [importingPos, setImportingPos] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
+  const [posError, setPosError] = useState<string | null>(null);
 
   async function openPosImport() {
     setPosModalOpen(true);
     setPosLoading(true);
+    setPosError(null);
     setSelectedPosCodes({});
     setPosSearch("");
     setImportSuccess(false);
@@ -92,9 +94,14 @@ export default function ProductsPage() {
         const body = await res.json();
         setPosProducts(body.data || []);
       } else {
-        console.error("Failed to load POS items");
+        const body = await res.json().catch(() => ({}));
+        const errMsg = body.error?.message || body.error || "POS системтэй холбогдоход алдаа гарлаа.";
+        setPosError(errMsg);
+        console.error("Failed to load POS items:", errMsg);
       }
-    } catch (err) {
+    } catch (err: any) {
+      const errMsg = err?.message || "Сүлжээний алдаа гарлаа. Дахин оролдоно уу.";
+      setPosError(errMsg);
       console.error("Error loading POS items", err);
     } finally {
       setPosLoading(false);
@@ -462,6 +469,25 @@ export default function ProductsPage() {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                     <span className="text-sm font-semibold">POS барааг ачаалж байна...</span>
+                  </div>
+                ) : posError ? (
+                  <div className="text-center py-10 px-6 rounded-2xl bg-rose-50/50 border border-rose-100 max-w-md mx-auto my-4 text-slate-500">
+                    <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-3 text-rose-600 animate-pulse">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-bold text-slate-800">POS баазтай холбогдож чадсангүй</p>
+                    <p className="text-[11px] text-rose-600/90 font-mono mt-2 bg-white/80 p-3 rounded-xl border border-rose-50 select-text overflow-x-auto text-left leading-relaxed">
+                      {posError}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={openPosImport}
+                      className="mt-5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+                    >
+                      Дахин оролдох
+                    </button>
                   </div>
                 ) : posProducts.length === 0 ? (
                   <div className="text-center py-12 text-slate-400">

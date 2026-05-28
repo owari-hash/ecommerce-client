@@ -457,15 +457,17 @@ export default function SettingsPage() {
           </h3>
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">POS MongoDB Холболтын URI</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">POS Холболтын хаяг (API URL эсвэл MongoDB URI)</label>
               <input
                 type="text"
                 value={draft.posDbUri ?? ""}
                 onChange={(e) => setDraftField("posDbUri", e.target.value)}
-                placeholder="mongodb://127.0.0.1:27017/pos"
+                placeholder="Жишээ: http://103.236.194.50:5000 эсвэл mongodb://..."
                 className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
               />
-              <p className="text-xs text-slate-400 mt-1">Орон нутгийн болон алсын POS системийн MongoDB холболтын мэдээлэл</p>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                Салбар дээр ажиллаж буй POS-ын арын албаны API хаяг (жишээ нь: <code className="font-semibold text-slate-600">http://103.236.194.50:5000</code>) эсвэл MongoDB холболтын мэдээлэл.
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

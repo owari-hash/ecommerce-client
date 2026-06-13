@@ -164,6 +164,9 @@ const SEED_SETTINGS: StoreSettings = {
   posDbUri: "",
   posBranchId: "",
   posOrgId: "",
+  emDbUri: "",
+  emBranchId: "",
+  emOrgId: "",
 };
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
@@ -331,6 +334,9 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
             posDbUri: data.posDbUri || "",
             posBranchId: data.posBranchId || "",
             posOrgId: data.posOrgId || "",
+            emDbUri: data.emDbUri || "",
+            emBranchId: data.emBranchId || "",
+            emOrgId: data.emOrgId || "",
           };
           setSettings(fetchedSettings);
           save(KEYS.settings, fetchedSettings);

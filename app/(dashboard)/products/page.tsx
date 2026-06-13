@@ -157,6 +157,99 @@ export default function ProductsPage() {
     }
   }
 
+  const [emModalOpen, setEmModalOpen] = useState(false);
+  const [emLoading, setEmLoading] = useState(false);
+  const [emProducts, setEmProducts] = useState<any[]>([]);
+  const [selectedEmCodes, setSelectedEmCodes] = useState<Record<string, boolean>>({});
+  const [emSearch, setEmSearch] = useState("");
+  const [importingEm, setImportingEm] = useState(false);
+  const [emError, setEmError] = useState<string | null>(null);
+
+  async function openEmImport() {
+    setEmModalOpen(true);
+    setEmLoading(true);
+    setEmError(null);
+    setSelectedEmCodes({});
+    setEmSearch("");
+    setImportSuccess(false);
+
+    try {
+      const token = localStorage.getItem("ikna_admin_token");
+      const searchParams = new URLSearchParams(window.location.search);
+      const tenantParam = searchParams.get('tenant');
+      const qs = tenantParam ? `&tenantId=${encodeURIComponent(tenantParam)}` : '';
+      
+      const res = await fetch(`${API_BASE}/api/products/em-available?${qs}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (res.ok) {
+        const body = await res.json();
+        setEmProducts(body.data || []);
+      } else {
+        const body = await res.json().catch(() => ({}));
+        const errMsg = body.error?.message || body.error || "EM системтэй холбогдоход алдаа гарлаа.";
+        setEmError(errMsg);
+        console.error("Failed to load EM items:", errMsg);
+      }
+    } catch (err: any) {
+      const errMsg = err?.message || "Сүлжээний алдаа гарлаа. Дахин оролдоно уу.";
+      setEmError(errMsg);
+      console.error("Error loading EM items", err);
+    } finally {
+      setEmLoading(false);
+    }
+  }
+
+  async function handleEmImport(e: React.FormEvent) {
+    e.preventDefault();
+    const codes = Object.keys(selectedEmCodes).filter((c) => selectedEmCodes[c]);
+    if (codes.length === 0) return;
+
+    setImportingEm(true);
+    try {
+      const token = localStorage.getItem("ikna_admin_token");
+      const searchParams = new URLSearchParams(window.location.search);
+      const tenantParam = searchParams.get('tenant');
+      
+      const res = await fetch(`${API_BASE}/api/products/em-import`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          codes,
+          tenantId: tenantParam || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        setImportSuccess(true);
+        const prodRes = await fetch(`${API_BASE}/api/products`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (prodRes.ok) {
+          const prodBody = await prodRes.json();
+          if (prodBody?.data) {
+            const KEYS = { products: "ikna_client_products" };
+            localStorage.setItem(KEYS.products, JSON.stringify(prodBody.data));
+            window.location.reload();
+          }
+        }
+        setTimeout(() => {
+          setEmModalOpen(false);
+        }, 1500);
+      } else {
+        console.error("EM import failed");
+      }
+    } catch (err) {
+      console.error("Error during EM import", err);
+    } finally {
+      setImportingEm(false);
+    }
+  }
+
   useEffect(() => {
     if (modal) {
       document.body.style.overflow = "hidden";
@@ -303,6 +396,17 @@ export default function ProductsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               POS-оос татах
+            </button>
+          )}
+          {!isRenter && settings.emDbUri && (
+            <button
+              onClick={() => openEmImport()}
+              className="flex items-center gap-2 border border-slate-200 hover:border-slate-300 text-slate-700 bg-white px-5 py-2 rounded-xl text-sm font-semibold transition-colors shadow-sm"
+            >
+              <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              EM-ээс татах
             </button>
           )}
           <button
@@ -557,6 +661,140 @@ export default function ProductsPage() {
                     className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white px-5 py-2 rounded-xl text-xs font-semibold transition-colors shadow-sm disabled:opacity-60"
                   >
                     {importingPos ? "Татаж байна..." : "Сонгосныг татах"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EM Import Modal */}
+      {emModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl animate-fade-in relative max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
+              <div>
+                <h3 className="font-bold text-slate-800 text-lg">EM-ээс эм/бараа татах</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Танай EM систем дээр бүртгэлтэй эмийн жагсаалт</p>
+              </div>
+              <button onClick={() => setEmModalOpen(false)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-6 py-3 border-b border-slate-50 bg-slate-50/50 shrink-0 flex items-center gap-3">
+              <div className="relative flex-1">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text" placeholder="Эмийн нэр эсвэл кодоор хайх..." value={emSearch}
+                  onChange={(e) => setEmSearch(e.target.value)}
+                  className="border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                />
+              </div>
+            </div>
+
+            <form onSubmit={handleEmImport} className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-6 py-4 overflow-y-auto flex-1">
+                {emLoading ? (
+                  <div className="flex flex-col items-center justify-center py-12 gap-3 text-slate-400">
+                    <svg className="w-8 h-8 animate-spin text-[#D32F2F]" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span className="text-sm font-semibold">EM барааг ачаалж байна...</span>
+                  </div>
+                ) : emError ? (
+                  <div className="text-center py-10 px-6 rounded-2xl bg-rose-50/50 border border-rose-100 max-w-md mx-auto my-4 text-slate-500">
+                    <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-3 text-rose-600 animate-pulse">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm font-bold text-slate-800">EM баазтай холбогдож чадсангүй</p>
+                    <p className="text-[11px] text-rose-600/90 font-mono mt-2 bg-white/80 p-3 rounded-xl border border-rose-50 select-text overflow-x-auto text-left leading-relaxed">
+                      {emError}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={openEmImport}
+                      className="mt-5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+                    >
+                      Дахин оролдох
+                    </button>
+                  </div>
+                ) : emProducts.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <p className="text-sm font-semibold">EM дээр эм олдсонгүй.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {emProducts
+                      .filter((p) =>
+                        p.name.toLowerCase().includes(emSearch.toLowerCase()) ||
+                        p.code.toLowerCase().includes(emSearch.toLowerCase())
+                      )
+                      .map((p) => (
+                        <div
+                          key={p.code}
+                          className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
+                            p.alreadyImported
+                              ? "bg-slate-50 border-slate-100 opacity-60"
+                              : selectedEmCodes[p.code]
+                              ? "bg-red-50/50 border-[#D32F2F]/30"
+                              : "bg-white border-slate-100 hover:border-slate-200"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              disabled={p.alreadyImported}
+                              checked={!!selectedEmCodes[p.code]}
+                              onChange={(e) =>
+                                setSelectedEmCodes((s) => ({ ...s, [p.code]: e.target.checked }))
+                              }
+                              className="rounded border-slate-300 text-[#D32F2F] focus:ring-[#D32F2F] w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <div>
+                              <p className="text-sm font-semibold text-slate-800">{p.name}</p>
+                              <p className="text-[10px] font-mono text-slate-400">Код: {p.code} {p.barcode && `· Баркод: ${p.barcode}`}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-slate-800">₮{p.price.toLocaleString()}</p>
+                            <p className="text-xs text-slate-500">Үлдэгдэл: <span className="font-semibold text-slate-700">{p.stock}</span></p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl shrink-0 flex items-center justify-between gap-3 mt-auto">
+                {importSuccess ? (
+                  <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Эм амжилттай татагдлаа!
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400">
+                    Сонгосон: <span className="font-bold text-slate-700">{Object.keys(selectedEmCodes).filter(c => selectedEmCodes[c]).length} эм</span>
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setEmModalOpen(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">Болих</button>
+                  <button
+                    type="submit"
+                    disabled={importingEm || emLoading || Object.keys(selectedEmCodes).filter(c => selectedEmCodes[c]).length === 0}
+                    className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white px-5 py-2 rounded-xl text-xs font-semibold transition-colors shadow-sm disabled:opacity-60"
+                  >
+                    {importingEm ? "Татаж байна..." : "Сонгосныг татах"}
                   </button>
                 </div>
               </div>

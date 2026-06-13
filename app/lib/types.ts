@@ -21,6 +21,8 @@ export type Product = {
   createdAt: string;
   isPosLinked?: boolean;
   posProductCode?: string;
+  isEmLinked?: boolean;
+  emProductCode?: string;
 };
 
 // ─── Category ─────────────────────────────────────────────────────────────────
@@ -180,4 +182,7 @@ export type StoreSettings = {
   posDbUri?: string;
   posBranchId?: string;
   posOrgId?: string;
+  emDbUri?: string;
+  emBranchId?: string;
+  emOrgId?: string;
 };

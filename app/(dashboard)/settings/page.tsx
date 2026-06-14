@@ -582,28 +582,6 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Салбарын ID (salbariinId)</label>
-              <input
-                type="text"
-                value={draft.posBranchId ?? ""}
-                onChange={(e) => setDraftField("posBranchId", e.target.value)}
-                placeholder="Жишээ: branch-001"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Байгууллагын ID (baiguullagiinId)</label>
-              <input
-                type="text"
-                value={draft.posOrgId ?? ""}
-                onChange={(e) => setDraftField("posOrgId", e.target.value)}
-                placeholder="Жишээ: org-999"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-              />
-            </div>
-          </div>
         </div>
 
         {/* EM Integration */}
@@ -627,28 +605,6 @@ export default function SettingsPage() {
               <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
                 Салбар дээр ажиллаж буй EM-ийн арын албаны API холболтын хаяг (жишээ нь: <code className="font-semibold text-slate-600">http://localhost:8080</code>).
               </p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Салбарын ID (salbariinId)</label>
-              <input
-                type="text"
-                value={draft.emBranchId ?? ""}
-                onChange={(e) => setDraftField("emBranchId", e.target.value)}
-                placeholder="Жишээ: branch-001"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Байгууллагын ID (baiguullagiinId)</label>
-              <input
-                type="text"
-                value={draft.emOrgId ?? ""}
-                onChange={(e) => setDraftField("emOrgId", e.target.value)}
-                placeholder="Жишээ: org-999"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-              />
             </div>
           </div>
         </div>

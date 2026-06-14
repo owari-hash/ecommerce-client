@@ -69,6 +69,25 @@ export default function SettingsPage() {
     fetchAllBranches();
   }, [draft.register]);
 
+  useEffect(() => {
+    setDraft((d) => {
+      let updated = false;
+      const patch: any = {};
+      if (!d.posDbUri || d.posDbUri === "https://pharma.zevtabs.mn/api") {
+        patch.posDbUri = "https://pos.zevtabs.mn/api/";
+        updated = true;
+      }
+      if (!d.emDbUri || d.emDbUri === "https://pharma.zevtabs.mn/api1") {
+        patch.emDbUri = "https://pharma.zevtabs.mn/api/";
+        updated = true;
+      }
+      if (updated) {
+        return { ...d, ...patch };
+      }
+      return d;
+    });
+  }, [draft.register]);
+
   function handleToggleBranch(branch: any, isEnabled: boolean) {
     const currentBranches = draft.branches || [];
     const existingIdx = currentBranches.findIndex((b) => b.id === branch._id);
@@ -559,55 +578,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* POS Integration */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
-            <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            POS Системийн Холболт (Заавал биш)
-          </h3>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">POS Арын Албаны API Хаяг (API URL)</label>
-              <input
-                type="text"
-                value={draft.posDbUri ?? ""}
-                onChange={(e) => setDraftField("posDbUri", e.target.value)}
-                placeholder="Жишээ: http://103.236.194.50:5000"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-              />
-              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                Салбар дээр ажиллаж буй POS-ын арын албаны API холболтын хаяг (жишээ нь: <code className="font-semibold text-slate-600">http://103.236.194.50:5000</code>).
-              </p>
-            </div>
-          </div>
-        </div>
 
-        {/* EM Integration */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
-            <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            EM Системийн Холболт (Заавал биш)
-          </h3>
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">EM Арын Албаны API Хаяг (API URL)</label>
-              <input
-                type="text"
-                value={draft.emDbUri ?? ""}
-                onChange={(e) => setDraftField("emDbUri", e.target.value)}
-                placeholder="Жишээ: http://localhost:8080"
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-              />
-              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                Салбар дээр ажиллаж буй EM-ийн арын албаны API холболтын хаяг (жишээ нь: <code className="font-semibold text-slate-600">http://localhost:8080</code>).
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Branch Connections */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">

@@ -26,6 +26,118 @@ export default function SettingsPage() {
     setSaved(false);
   }
 
+  const [fetchedBranches, setFetchedBranches] = useState<any[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+
+  useEffect(() => {
+    if (!draft.register) return;
+    const mainRegister = draft.register.split("-")[0];
+
+    async function fetchAllBranches() {
+      setLoadingBranches(true);
+      try {
+        const res = await fetch(`https://admin.zevtabs.mn/api/baiguullagaTokengu?register=${encodeURIComponent(mainRegister)}`);
+        if (!res.ok) throw new Error("Failed to fetch head company");
+        const headCompany = await res.json();
+        
+        const resolved: any[] = [headCompany];
+        const salbariinToo = headCompany.salbariinToo || 1;
+        
+        if (salbariinToo > 1) {
+          for (let i = 2; i <= salbariinToo; i++) {
+            try {
+              const bRes = await fetch(`https://admin.zevtabs.mn/api/baiguullagaTokengu?register=${mainRegister}-${i}`);
+              if (bRes.ok) {
+                const branchData = await bRes.json();
+                if (branchData && branchData._id) {
+                  resolved.push(branchData);
+                }
+              }
+            } catch (err) {
+              console.error(`Error fetching branch ${mainRegister}-${i}:`, err);
+            }
+          }
+        }
+        setFetchedBranches(resolved);
+      } catch (err) {
+        console.error("Error loading branches:", err);
+      } finally {
+        setLoadingBranches(false);
+      }
+    }
+
+    fetchAllBranches();
+  }, [draft.register]);
+
+  function handleToggleBranch(branch: any, isEnabled: boolean) {
+    const currentBranches = draft.branches || [];
+    const existingIdx = currentBranches.findIndex((b) => b.id === branch._id);
+    
+    let nextBranches = [...currentBranches];
+    const systems: string[] = Array.isArray(branch.systemuud) ? branch.systemuud : [];
+    const systemTurul = branch.systemTurul || (systems[0] || "");
+
+    const newBranchObj = {
+      id: branch._id,
+      name: branch.ner || branch.dotoodNer || "",
+      register: branch.register || "",
+      systemTurul,
+      systemuud: systems,
+      isEnabled,
+    };
+
+    if (existingIdx > -1) {
+      nextBranches[existingIdx] = newBranchObj;
+    } else {
+      nextBranches.push(newBranchObj);
+    }
+
+    const posActive = nextBranches.find(b => b.isEnabled && (b.systemTurul === "pos" || b.systemuud?.includes("pos")));
+    const emActive = nextBranches.find(b => b.isEnabled && (b.systemTurul === "Pharm" || b.systemTurul === "EPharm" || b.systemuud?.includes("Pharm") || b.systemuud?.includes("EPharm")));
+
+    const head = fetchedBranches.find(b => !b.register.includes("-"));
+    const headId = head?._id || branch._id;
+
+    setDraft((d) => {
+      const updated: any = {
+        ...d,
+        branches: nextBranches,
+      };
+
+      if (posActive) {
+        updated.posBranchId = posActive.id;
+        updated.posOrgId = headId;
+        if (!d.posDbUri) {
+          updated.posDbUri = "https://pos.zevtabs.mn/api/";
+        }
+      } else {
+        const anyActivePos = nextBranches.some(b => b.isEnabled && (b.systemTurul === "pos" || b.systemuud?.includes("pos")));
+        if (!anyActivePos) {
+          updated.posBranchId = "";
+          updated.posOrgId = "";
+        }
+      }
+
+      if (emActive) {
+        updated.emBranchId = emActive.id;
+        updated.emOrgId = headId;
+        if (!d.emDbUri) {
+          updated.emDbUri = "https://pharma.zevtabs.mn/api/";
+        }
+      } else {
+        const anyActiveEm = nextBranches.some(b => b.isEnabled && (b.systemTurul === "Pharm" || b.systemTurul === "EPharm" || b.systemuud?.includes("Pharm") || b.systemuud?.includes("EPharm")));
+        if (!anyActiveEm) {
+          updated.emBranchId = "";
+          updated.emOrgId = "";
+        }
+      }
+
+      return updated;
+    });
+
+    setSaved(false);
+  }
+
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
     updateSettings(draft);
@@ -539,6 +651,85 @@ export default function SettingsPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Branch Connections */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <svg className="w-4.5 h-4.5 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            Салбаруудын систем холболт
+          </h3>
+          <p className="text-xs text-slate-400 -mt-2">
+            Байгууллагын салбаруудын POS болон EM холболтыг идэвхжүүлэх эсвэл идэвхгүй болгох.
+          </p>
+
+          {loadingBranches ? (
+            <div className="flex items-center justify-center py-6 text-slate-400 text-sm gap-2">
+              <svg className="animate-spin h-5 w-5 text-[#D32F2F]" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Салбаруудын мэдээллийг татаж байна...
+            </div>
+          ) : fetchedBranches.length === 0 ? (
+            <div className="text-center py-6 text-slate-400 text-xs italic bg-slate-50 rounded-xl">
+              Байгууллагын регистрийн дугаар олдсонгүй эсвэл салбар бүртгэгдээгүй байна.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {fetchedBranches.map((branch) => {
+                const systems: string[] = Array.isArray(branch.systemuud) ? branch.systemuud : [];
+                const systemTurul = branch.systemTurul || (systems[0] || "");
+                const hasPos = systems.includes("pos") || systemTurul === "pos";
+                const hasEm = systems.includes("Pharm") || systems.includes("EPharm") || systemTurul === "Pharm" || systemTurul === "EPharm";
+                
+                const savedBranch = draft.branches?.find((b) => b.id === branch._id);
+                const isEnabled = savedBranch ? savedBranch.isEnabled : true;
+
+                return (
+                  <div key={branch._id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0 hover:bg-slate-50/50 px-2 rounded-xl transition-colors">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-700 text-sm">{branch.ner || branch.dotoodNer || "Салбар нэр байхгүй"}</span>
+                        <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">РД: {branch.register}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        {hasPos && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+                            POS холболттой
+                          </span>
+                        )}
+                        {hasEm && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                            EM холболттой
+                          </span>
+                        )}
+                        {!hasPos && !hasEm && (
+                          <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Холбогдоогүй</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="relative flex-shrink-0">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        id={`branch-toggle-${branch._id}`}
+                        checked={isEnabled}
+                        onChange={(e) => handleToggleBranch(branch, e.target.checked)}
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-checked:bg-[#D32F2F] rounded-full transition-colors cursor-pointer" />
+                      <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5 pointer-events-none" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Save bar */}

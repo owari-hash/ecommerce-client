@@ -185,4 +185,16 @@ export type StoreSettings = {
   emDbUri?: string;
   emBranchId?: string;
   emOrgId?: string;
+  register?: string;
+  registerTurul?: "Байгууллага" | "Хувь хүн";
+  branches?: StoreBranch[];
+};
+
+export type StoreBranch = {
+  id: string;
+  name: string;
+  register: string;
+  systemTurul?: string;
+  systemuud?: string[];
+  isEnabled: boolean;
 };

@@ -167,6 +167,9 @@ const SEED_SETTINGS: StoreSettings = {
   emDbUri: "",
   emBranchId: "",
   emOrgId: "",
+  register: "",
+  registerTurul: "Байгууллага",
+  branches: [],
 };
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
@@ -337,6 +340,9 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
             emDbUri: data.emDbUri || "",
             emBranchId: data.emBranchId || "",
             emOrgId: data.emOrgId || "",
+            register: data.register || "",
+            registerTurul: data.registerTurul || "Байгууллага",
+            branches: Array.isArray(data.branches) ? data.branches : [],
           };
           setSettings(fetchedSettings);
           save(KEYS.settings, fetchedSettings);

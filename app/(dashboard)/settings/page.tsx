@@ -659,6 +659,116 @@ export default function SettingsPage() {
           )}
         </div>
 
+        {/* Shipping/Delivery Settings */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <svg className="w-4.5 h-4.5 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+            Хүргэлтийн тохиргоо
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Хүргэлтийн төлбөр (₮)</label>
+              <input
+                type="number"
+                value={draft.shippingFee ?? 15000}
+                onChange={(e) => setDraftField("shippingFee", Number(e.target.value))}
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Үнэгүй хүргэх босго дүн (₮)</label>
+              <input
+                type="number"
+                value={draft.shippingFreeThreshold ?? 500000}
+                onChange={(e) => setDraftField("shippingFreeThreshold", Number(e.target.value))}
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Ebarimt settings */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              <svg className="w-4.5 h-4.5 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              И-Баримт тохиргоо
+            </h3>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-xs text-slate-500">И-Баримт ашиглах</span>
+              <div className="relative flex-shrink-0">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={draft.ebarimtEnabled ?? false}
+                  onChange={(e) => setDraftField("ebarimtEnabled", e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-checked:bg-[#D32F2F] rounded-full transition-colors" />
+                <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+              </div>
+            </label>
+          </div>
+
+          {draft.ebarimtEnabled && (
+            <div className="space-y-4 pt-4 border-t border-slate-100 animate-fadeIn">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Татвар төлөгчийн дугаар (TIN)</label>
+                  <input
+                    type="text"
+                    value={draft.ebarimtTin ?? ""}
+                    placeholder="37900846788"
+                    onChange={(e) => setDraftField("ebarimtTin", e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Дүүрэг</label>
+                  <input
+                    type="text"
+                    value={draft.ebarimtDistrict ?? ""}
+                    placeholder="Сүхбаатар"
+                    onChange={(e) => setDraftField("ebarimtDistrict", e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Хороо</label>
+                  <input
+                    type="text"
+                    value={draft.ebarimtKhoroo ?? ""}
+                    placeholder="20-р хороо"
+                    onChange={(e) => setDraftField("ebarimtKhoroo", e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 mt-6">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">И-Баримт автоматаар илгээх</p>
+                    <p className="text-xs text-slate-400">Төлбөр төлөгдөх үед баримтыг автоматаар бүртгэнэ</p>
+                  </div>
+                  <label className="relative flex-shrink-0 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={draft.ebarimtAutoSend ?? false}
+                      onChange={(e) => setDraftField("ebarimtAutoSend", e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-checked:bg-[#D32F2F] rounded-full transition-colors" />
+                    <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Save bar */}
         <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-4">
           {saved ? (

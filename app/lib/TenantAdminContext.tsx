@@ -170,6 +170,13 @@ const SEED_SETTINGS: StoreSettings = {
   register: "",
   registerTurul: "Байгууллага",
   branches: [],
+  shippingFee: 15000,
+  shippingFreeThreshold: 500000,
+  ebarimtTin: "",
+  ebarimtDistrict: "",
+  ebarimtKhoroo: "",
+  ebarimtEnabled: false,
+  ebarimtAutoSend: false,
 };
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
@@ -343,6 +350,13 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
             register: data.register || "",
             registerTurul: data.registerTurul || "Байгууллага",
             branches: Array.isArray(data.branches) ? data.branches : [],
+            shippingFee: typeof data.shippingFee === "number" ? data.shippingFee : 15000,
+            shippingFreeThreshold: typeof data.shippingFreeThreshold === "number" ? data.shippingFreeThreshold : 500000,
+            ebarimtTin: data.ebarimtTin || "",
+            ebarimtDistrict: data.ebarimtDistrict || "",
+            ebarimtKhoroo: data.ebarimtKhoroo || "",
+            ebarimtEnabled: !!data.ebarimtEnabled,
+            ebarimtAutoSend: !!data.ebarimtAutoSend,
           };
           setSettings(fetchedSettings);
           save(KEYS.settings, fetchedSettings);

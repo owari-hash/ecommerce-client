@@ -188,6 +188,13 @@ export type StoreSettings = {
   register?: string;
   registerTurul?: "Байгууллага" | "Хувь хүн";
   branches?: StoreBranch[];
+  shippingFee?: number;
+  shippingFreeThreshold?: number;
+  ebarimtTin?: string;
+  ebarimtDistrict?: string;
+  ebarimtKhoroo?: string;
+  ebarimtEnabled?: boolean;
+  ebarimtAutoSend?: boolean;
 };
 
 export type StoreBranch = {

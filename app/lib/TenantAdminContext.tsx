@@ -14,6 +14,7 @@ import type {
   Category,
   Brand,
   Order,
+  OrderItem,
   Customer,
   StoreSettings,
   Renter,
@@ -239,7 +240,7 @@ type TenantAdminCtx = {
 
   // Orders
   orders: Order[];
-  updateOrderStatus: (id: string, status: Order["status"]) => void;
+  updateOrderStatus: (id: string, status: Order["status"]) => Promise<void>;
 
   // Customers
   customers: Customer[];
@@ -370,9 +371,10 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
     if (!token) return;
 
     try {
-      const [catRes, prodRes] = await Promise.all([
+      const [catRes, prodRes, ordersRes] = await Promise.all([
         fetch(`${API_BASE}/api/categories`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_BASE}/api/products`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/orders`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       if (catRes.status === 401 || prodRes.status === 401) {
@@ -393,6 +395,64 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
         if (prodBody?.data) {
           setProducts(prodBody.data);
           save(KEYS.products, prodBody.data);
+        }
+      }
+
+      if (ordersRes.ok) {
+        const ordersBody = await ordersRes.json();
+        if (ordersBody?.data) {
+          const normalized: Order[] = ordersBody.data.map((o: any): Order => ({
+            id: o._id ?? o.id,
+            orderNo: o.orderNumber ?? o.orderNo ?? o._id ?? o.id,
+            customer: {
+              name: o.customerInfo
+                ? `${o.customerInfo.firstName ?? ""} ${o.customerInfo.lastName ?? ""}`.trim()
+                : (o.customer?.name ?? "—"),
+              email: o.customerInfo?.email ?? o.customer?.email ?? "",
+              phone: o.customerInfo?.phone ?? o.customer?.phone ?? "",
+            },
+            items: (o.items ?? []).map((item: any): OrderItem => ({
+              productId: item.productId ?? item._id ?? "",
+              productName: item.name ?? item.productName ?? "",
+              qty: Number(item.quantity ?? item.qty ?? 1),
+              price: Number(item.price ?? 0),
+            })),
+            subtotal: Number(o.total ?? 0),
+            total: Number(o.total ?? 0),
+            status: (o.orderStatus ?? o.status ?? "pending") as Order["status"],
+            note: o.note ?? "",
+            createdAt: o.createdAt ? String(o.createdAt).slice(0, 10) : "",
+          }));
+          setOrders(normalized);
+          save(KEYS.orders, normalized);
+
+          // Derive customers from orders
+          const customerMap = new Map<string, Customer>();
+          for (const order of normalized) {
+            const key = order.customer.email || order.customer.phone || order.customer.name;
+            if (!key) continue;
+            const existing = customerMap.get(key);
+            if (existing) {
+              existing.totalOrders += 1;
+              existing.totalSpent += order.total;
+              if (order.createdAt < existing.createdAt) existing.createdAt = order.createdAt;
+            } else {
+              customerMap.set(key, {
+                id: key,
+                name: order.customer.name,
+                email: order.customer.email,
+                phone: order.customer.phone,
+                address: "",
+                totalOrders: 1,
+                totalSpent: order.total,
+                status: "active",
+                createdAt: order.createdAt,
+              });
+            }
+          }
+          const derivedCustomers = Array.from(customerMap.values());
+          setCustomers(derivedCustomers);
+          save(KEYS.customers, derivedCustomers);
         }
       }
     } catch (err) {
@@ -768,10 +828,22 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
   // ── Orders ───────────────────────────────────────────────────────────────────
 
   const updateOrderStatus = useCallback(
-    (id: string, status: Order["status"]) => {
+    async (id: string, status: Order["status"]) => {
       const next = orders.map((o) => (o.id === id ? { ...o, status } : o));
       setOrders(next);
       save(KEYS.orders, next);
+      const token = localStorage.getItem("ikna_admin_token");
+      if (token) {
+        try {
+          await fetch(`${API_BASE}/api/orders/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ orderStatus: status }),
+          });
+        } catch (e) {
+          console.error("Failed to update order status on backend", e);
+        }
+      }
     },
     [orders]
   );

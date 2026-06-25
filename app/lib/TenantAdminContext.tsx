@@ -273,12 +273,14 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
     const sessionId = load<string | null>(KEYS.session, null);
     const renterSessionId = load<string | null>(KEYS.renterSession, null);
 
-    // Wipe any previously seeded mock categories/products so real backend data takes over
+    // Wipe any previously seeded mock categories/products/brands so real backend data takes over
     const storedCats = load<Category[]>(KEYS.categories, []);
     const storedProds = load<Product[]>(KEYS.products, []);
-    const looksLikeSeed = (ids: string[]) => ids.some((id) => /^(cat|p)\d/.test(id));
+    const storedBrands = load<Brand[]>(KEYS.brands, []);
+    const looksLikeSeed = (ids: string[]) => ids.some((id) => /^(cat|p|br)\d/.test(id));
     if (looksLikeSeed(storedCats.map((c) => c.id))) localStorage.removeItem(KEYS.categories);
     if (looksLikeSeed(storedProds.map((p) => p.id))) localStorage.removeItem(KEYS.products);
+    if (looksLikeSeed(storedBrands.map((b) => b.id))) localStorage.removeItem(KEYS.brands);
 
     if (!localStorage.getItem(KEYS.users)) save(KEYS.users, SEED_USERS);
     if (!localStorage.getItem(KEYS.renters)) save(KEYS.renters, SEED_RENTERS);
@@ -395,6 +397,28 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
         if (prodBody?.data) {
           setProducts(prodBody.data);
           save(KEYS.products, prodBody.data);
+
+          // Derive brands dynamically from unique brandId values in products
+          const brandMap = new Map<string, Brand>();
+          for (const p of prodBody.data as any[]) {
+            const id = (p.brandId ?? "").trim();
+            if (!id || id === "br1") continue;
+            if (!brandMap.has(id)) {
+              brandMap.set(id, {
+                id,
+                name: id,
+                slug: id.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+                logo: "",
+                description: "",
+                renterId: p.renterId ?? null,
+                status: "active",
+                createdAt: p.createdAt ? String(p.createdAt).slice(0, 10) : "",
+              });
+            }
+          }
+          const derivedBrands = Array.from(brandMap.values());
+          setBrands(derivedBrands);
+          save(KEYS.brands, derivedBrands);
         }
       }
 

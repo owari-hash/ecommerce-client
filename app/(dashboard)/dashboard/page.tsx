@@ -10,7 +10,7 @@ export default function DashboardPage() {
   const outOfStock = products.filter((p) => p.stock === 0).length;
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
   const totalRevenue = orders
-    .filter((o) => o.status === "delivered")
+    .filter((o) => o.status === "delivered" || o.status === "shipped")
     .reduce((sum, o) => sum + o.total, 0);
 
   const stats = [
@@ -58,8 +58,12 @@ export default function DashboardPage() {
     },
     {
       label: "Нийт орлого",
-      value: `₮${(totalRevenue / 1000000).toFixed(1)}M`,
-      sub: "Хүргэгдсэн захиалга",
+      value: totalRevenue >= 1_000_000
+        ? `₮${(totalRevenue / 1_000_000).toFixed(1)}M`
+        : totalRevenue >= 1_000
+        ? `₮${(totalRevenue / 1_000).toFixed(0)}K`
+        : `₮${totalRevenue.toLocaleString()}`,
+      sub: "Илгээгдсэн + хүргэгдсэн",
       color: "text-purple-600",
       bg: "bg-purple-50",
       border: "border-purple-100",

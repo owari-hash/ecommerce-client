@@ -58,10 +58,8 @@ export default function DashboardPage() {
     },
     {
       label: "Нийт орлого",
-      value: totalRevenue >= 1_000_000
+      value: totalRevenue >= 100_000_000
         ? `₮${(totalRevenue / 1_000_000).toFixed(1)}M`
-        : totalRevenue >= 1_000
-        ? `₮${(totalRevenue / 1_000).toFixed(0)}K`
         : `₮${totalRevenue.toLocaleString()}`,
       sub: "Цуцлагдаагүй бүх захиалга",
       color: "text-purple-600",

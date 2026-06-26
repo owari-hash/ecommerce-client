@@ -103,7 +103,7 @@ function CategoryPicker({
     : cats;
 
   return (
-    <div className="border border-[#D32F2F]/30 rounded-xl bg-red-50/30 p-3 space-y-2">
+    <div className="border border-[#D32F2F]/30 rounded-xl bg-slate-50 p-3 space-y-2">
       <input
         type="text"
         value={q}
@@ -112,22 +112,23 @@ function CategoryPicker({
         className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
         autoFocus
       />
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 max-h-52 overflow-y-auto">
+      <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
         {filtered.map((cat) => (
           <button
             key={cat.id}
             type="button"
             onClick={() => onPick(cat)}
-            className="flex items-center gap-2 p-2 rounded-lg bg-white border border-slate-100 hover:border-[#D32F2F] hover:bg-red-50 text-left transition-colors group"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-white border border-slate-100 hover:border-[#D32F2F] hover:bg-red-50 text-left transition-colors group w-full"
           >
             <CatThumb image={cat.image} name={cat.name} size={7} />
-            <span className="text-xs font-semibold text-slate-700 group-hover:text-[#D32F2F] leading-tight truncate">
+            <span className="text-sm font-semibold text-slate-700 group-hover:text-[#D32F2F] leading-tight truncate flex-1">
               {cat.name}
             </span>
+            <svg className="w-4 h-4 text-slate-300 group-hover:text-[#D32F2F] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
           </button>
         ))}
         {filtered.length === 0 && (
-          <p className="col-span-full text-xs text-slate-400 text-center py-4">Ангилал олдсонгүй</p>
+          <p className="text-xs text-slate-400 text-center py-4">Ангилал олдсонгүй</p>
         )}
       </div>
     </div>
@@ -149,22 +150,48 @@ function BannerTab({
   label: string;
   hint: string;
 }) {
+  // active: which slot is open for category picking
   const [active, setActive] = useState<number | null>(null);
+  // customImg: which slot is open for custom image override
+  const [customImgOpen, setCustomImgOpen] = useState<number | null>(null);
 
   function pick(idx: number, cat: Cat) {
-    const next = slides.map((s, i) => (i === idx ? catToSlide(cat) : s));
+    const slide = catToSlide(cat);
+    // preserve any existing custom image override
+    const existing = slides[idx];
+    if (existing._customImage) slide.image = existing._customImage as string;
+    const next = slides.map((s, i) => (i === idx ? slide : s));
     onChange(next);
     setActive(null);
+  }
+
+  function setCustomImage(idx: number, url: string) {
+    const next = slides.map((s, i) =>
+      i === idx ? { ...s, image: url, _customImage: url } : s
+    );
+    onChange(next);
+  }
+
+  function clearCustomImage(idx: number) {
+    // revert to category default image
+    const slide = slides[idx];
+    const cat = cats.find((c) => `/${c.slug}` === slide.href);
+    const defaultImg = cat ? resolveCatImage(cat.image).url : "";
+    const next = slides.map((s, i) =>
+      i === idx ? { ...s, image: defaultImg, _customImage: undefined } : s
+    );
+    onChange(next);
   }
 
   function clear(idx: number) {
     const next = slides.map((s, i) => (i === idx ? { ...EMPTY_SLIDE } : s));
     onChange(next);
     if (active === idx) setActive(null);
+    if (customImgOpen === idx) setCustomImgOpen(null);
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
       <div>
         <h3 className="font-bold text-slate-800 flex items-center gap-2">
           <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,67 +202,121 @@ function BannerTab({
         <p className="text-xs text-slate-400 mt-0.5">{hint}</p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {slides.map((slide, idx) => {
           const filled = !!slide.title;
           const isOpen = active === idx;
+          const isImgOpen = customImgOpen === idx;
 
           return (
-            <div key={idx}>
-              <button
-                type="button"
-                onClick={() => setActive(isOpen ? null : idx)}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
-                  isOpen
-                    ? "border-[#D32F2F] bg-red-50/40"
-                    : "border-slate-200 hover:border-slate-300 bg-white"
-                }`}
-              >
+            <div key={idx} className="rounded-xl border border-slate-200 overflow-hidden">
+              {/* ── Slide row ─────────────────────────────────── */}
+              <div className={`flex items-center gap-3 p-3 ${
+                isOpen ? "bg-red-50/40" : "bg-white"
+              }`}>
                 {/* Slot number */}
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-black ${
-                    isOpen ? "bg-[#D32F2F] text-white" : "bg-slate-100 text-slate-500"
-                  }`}
-                >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-black ${
+                  isOpen ? "bg-[#D32F2F] text-white" : "bg-slate-100 text-slate-500"
+                }`}>
                   {idx + 1}
                 </div>
 
-                {/* Category preview or placeholder */}
+                {/* Thumbnail */}
                 {filled ? (
-                  <>
-                    {slide.image ? (
-                      <img
-                        src={slide.image}
-                        alt={slide.title}
-                        className="w-10 h-10 rounded-lg object-cover border border-slate-100 flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-xl flex-shrink-0">
-                        {slide.emoji}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
+                  slide.image ? (
+                    <img src={slide.image} alt={slide.title}
+                      className="w-10 h-10 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-xl flex-shrink-0">
+                      {slide.emoji}
+                    </div>
+                  )
+                ) : null}
+
+                {/* Name / placeholder */}
+                <div className="flex-1 min-w-0">
+                  {filled ? (
+                    <>
                       <p className="text-sm font-semibold text-slate-800 truncate">{slide.title}</p>
                       <p className="text-xs text-slate-400 truncate">{slide.href}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); clear(idx); }}
-                      className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 text-sm flex items-center justify-center flex-shrink-0 transition-colors"
-                    >
+                    </>
+                  ) : (
+                    <p className="text-sm text-slate-400">{isOpen ? "Ангилал сонгоно уу..." : "Ангилал сонгох"}</p>
+                  )}
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* Change category */}
+                  <button type="button" onClick={() => { setActive(isOpen ? null : idx); setCustomImgOpen(null); }}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                      isOpen
+                        ? "bg-[#D32F2F] text-white border-[#D32F2F]"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-[#D32F2F] hover:text-[#D32F2F]"
+                    }`}>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    {filled ? "Солих" : "Сонгох"}
+                  </button>
+
+                  {/* Custom image override — only when filled */}
+                  {filled && (
+                    <button type="button"
+                      onClick={() => { setCustomImgOpen(isImgOpen ? null : idx); setActive(null); }}
+                      title="Өөр зураг ашиглах (optional)"
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                        isImgOpen
+                          ? "bg-slate-700 text-white border-slate-700"
+                          : slide._customImage
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-300"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
+                      }`}>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01"/></svg>
+                      Зураг
+                    </button>
+                  )}
+
+                  {/* Clear */}
+                  {filled && (
+                    <button type="button" onClick={() => clear(idx)}
+                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 flex items-center justify-center text-sm transition-colors">
                       ×
                     </button>
-                  </>
-                ) : (
-                  <p className="text-sm text-slate-400 flex-1">
-                    {isOpen ? "Ангилал сонгоно уу..." : "Ангилал сонгох"}
-                  </p>
-                )}
-              </button>
+                  )}
+                </div>
+              </div>
 
+              {/* ── Category picker panel ──────────────────────── */}
               {isOpen && (
-                <div className="mt-1.5">
+                <div className="border-t border-slate-100 p-3 bg-slate-50">
                   <CategoryPicker cats={cats} onPick={(cat) => pick(idx, cat)} />
+                </div>
+              )}
+
+              {/* ── Custom image override panel ────────────────── */}
+              {isImgOpen && filled && (
+                <div className="border-t border-slate-100 p-3 bg-slate-50 space-y-2">
+                  <p className="text-xs font-semibold text-slate-600">
+                    Тусгай зураг (заавал биш) — ангилалын үндсэн зургийн оронд
+                  </p>
+                  <div className="flex gap-2 items-center">
+                    {slide.image && (
+                      <img src={slide.image} alt="preview"
+                        className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0" />
+                    )}
+                    <input
+                      type="text"
+                      value={slide._customImage ?? slide.image ?? ""}
+                      onChange={(e) => setCustomImage(idx, e.target.value)}
+                      placeholder="https://... зургийн URL"
+                      className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+                    />
+                  </div>
+                  {slide._customImage && (
+                    <button type="button" onClick={() => clearCustomImage(idx)}
+                      className="text-xs text-slate-400 hover:text-red-500 transition-colors">
+                      ↩ Ангилалын үндсэн зураг руу буцах
+                    </button>
+                  )}
                 </div>
               )}
             </div>

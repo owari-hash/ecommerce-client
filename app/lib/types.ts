@@ -144,6 +144,8 @@ export type BannerSlide = {
   subtitle: string;
   emoji: string;
   image: string;
+  /** Optional custom image URL override (not saved to DB, UI-only tracking) */
+  _customImage?: string;
 };
 
 export type BentoTile = {

@@ -122,7 +122,7 @@ export default function DashboardPage() {
           </svg>
           <p className="text-sm text-yellow-800 font-medium">
             <span className="font-bold">{outOfStock}</span> бүтээгдэхүүн нөөцгүй байна.{" "}
-            <Link href="/products" className="underline hover:text-yellow-900">Нөөц нэмэх →</Link>
+            <Link href="/products" className="underline hover:text-yellow-900">Нөөц нэмэх </Link>
           </p>
         </div>
       )}
@@ -134,7 +134,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
             <h2 className="font-semibold text-slate-800">Сүүлийн захиалга</h2>
             <Link href="/orders" className="text-[#D32F2F] text-sm font-medium hover:underline">
-              Бүгдийг харах →
+              Бүгдийг харах 
             </Link>
           </div>
           <div className="divide-y divide-slate-50">

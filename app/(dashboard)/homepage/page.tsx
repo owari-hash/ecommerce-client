@@ -36,7 +36,7 @@ function resolveCatImage(image?: string): { url: string; emoji: string } {
   return { url: s.startsWith("/") ? `${api}${s}` : `${api}/upload/${s}`, emoji: "" };
 }
 
-// ─── Convert category → tile / slide ─────────────────────────────────────────
+// ─── Convert category  tile / slide ─────────────────────────────────────────
 
 function catToTile(cat: Cat): BentoTile {
   const { url } = resolveCatImage(cat.image);
@@ -74,7 +74,7 @@ function ensure9(arr: BentoTile[]): BentoTile[] {
 
 function CatThumb({ image, name, size = 8 }: { image?: string; name: string; size?: number }) {
   const { url, emoji } = resolveCatImage(image);
-  const px = size * 4; // tailwind unit → px approximation for img sizes
+  const px = size * 4; // tailwind unit  px approximation for img sizes
   return (
     <div
       className={`w-${size} h-${size} rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200`}

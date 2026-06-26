@@ -443,7 +443,7 @@ export default function SettingsPage() {
                 <p className="text-[10px] font-black uppercase opacity-80 tracking-wider">{draft.promoLabel || "Хязгаартай"}</p>
                 <p className="text-xl font-black mt-1">{draft.promoDiscount || "30% OFF"}</p>
                 {draft.promoSubtitle && <p className="text-sm opacity-90">{draft.promoSubtitle}</p>}
-                <span className="inline-block mt-3 bg-white text-red-600 px-3 py-1.5 rounded-lg text-xs font-black">Харах →</span>
+                <span className="inline-block mt-3 bg-white text-red-600 px-3 py-1.5 rounded-lg text-xs font-black">Харах </span>
               </div>
             </div>
           )}

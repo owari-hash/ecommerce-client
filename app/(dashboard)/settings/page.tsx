@@ -659,6 +659,64 @@ export default function SettingsPage() {
           )}
         </div>
 
+        {/* EM / POS manual ID override */}
+        <div className="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-4">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <svg className="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2" />
+            </svg>
+            EM / POS холболтын ID (гараар тохируулах)
+          </h3>
+          <p className="text-xs text-slate-400">Салбарын бүртгэлгүй эсвэл автоматаар олдохгүй тохиолдолд доорх талбарт байгууллага / салбарын ID-г гараар оруулна уу.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">EM — Байгууллагын ID <span className="font-mono text-slate-400">(baiguullagiinId)</span></label>
+              <input
+                type="text"
+                value={(draft as any).emOrgId ?? ""}
+                onChange={(e) => setDraftField("emOrgId" as any, e.target.value)}
+                placeholder="652e52e91ff333127f361a15"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400/40 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">EM — Салбарын ID <span className="font-mono text-slate-400">(salbariinId)</span></label>
+              <input
+                type="text"
+                value={(draft as any).emBranchId ?? ""}
+                onChange={(e) => setDraftField("emBranchId" as any, e.target.value)}
+                placeholder="652e52e91ff333127f361a15"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400/40 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">POS — Байгууллагын ID <span className="font-mono text-slate-400">(baiguullagiinId)</span></label>
+              <input
+                type="text"
+                value={(draft as any).posOrgId ?? ""}
+                onChange={(e) => setDraftField("posOrgId" as any, e.target.value)}
+                placeholder="652e52e91ff333127f361a15"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400/40 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">POS — Салбарын ID <span className="font-mono text-slate-400">(salbariinId)</span></label>
+              <input
+                type="text"
+                value={(draft as any).posBranchId ?? ""}
+                onChange={(e) => setDraftField("posBranchId" as any, e.target.value)}
+                placeholder="652e52e91ff333127f361a15"
+                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400/40 bg-white"
+              />
+            </div>
+          </div>
+          {((draft as any).emOrgId || (draft as any).emBranchId) && (
+            <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
+              EM холболт: <span className="font-mono">{(draft as any).emOrgId || "—"}</span> / <span className="font-mono">{(draft as any).emBranchId || "—"}</span>
+            </div>
+          )}
+        </div>
+
         {/* Shipping/Delivery Settings */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
           <h3 className="font-bold text-slate-800 flex items-center gap-2">

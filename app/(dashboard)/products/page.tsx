@@ -239,6 +239,7 @@ export default function ProductsPage() {
       }
 
       if (best) map[p.code] = best.id;
+      else map[p.code] = "__unmatched__";
     }
     return map;
   }
@@ -294,10 +295,31 @@ export default function ProductsPage() {
       const searchParams = new URLSearchParams(window.location.search);
       const tenantParam = searchParams.get('tenant');
 
+      // Ensure "Бусад" category exists for unmatched products
+      let busadId: string | null = null;
+      const existingBusad = categories.find((c: any) => c.name === "Бусад" && c.status === "active");
+      if (existingBusad) {
+        busadId = existingBusad.id;
+      } else if (codes.some((c) => emCatMap[c] === "__unmatched__")) {
+        try {
+          const res = await fetch(`${API_BASE}/api/categories`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ name: "Бусад", slug: "busad", status: "active", ...(tenantParam ? { tenantId: tenantParam } : {}) }),
+          });
+          if (res.ok) {
+            const body = await res.json();
+            busadId = body.data?.id ?? body.data?._id ?? null;
+          }
+        } catch { /* ignore */ }
+      }
+
       let done = 0;
       for (const code of codes) {
         const categoryOverrides: Record<string, string> = {};
-        if (emCatMap[code]) categoryOverrides[code] = emCatMap[code];
+        const assignedCat = emCatMap[code];
+        const resolvedCat = assignedCat === "__unmatched__" ? busadId : (assignedCat || null);
+        if (resolvedCat) categoryOverrides[code] = resolvedCat;
         await fetch(`${API_BASE}/api/products/em-import`, {
           method: "POST",
           headers: {
@@ -999,7 +1021,8 @@ export default function ProductsPage() {
                   <div className="space-y-1.5">
                     {emFiltered.map((p) => {
                       const suggestedCatId = emCatMap[p.code];
-                      const suggestedCat = suggestedCatId ? categories.find((c) => c.id === suggestedCatId) : null;
+                      const isUnmatched = suggestedCatId === "__unmatched__";
+                      const suggestedCat = isUnmatched ? { id: "__unmatched__", name: "Бусад" } : (suggestedCatId ? categories.find((c) => c.id === suggestedCatId) : null);
                       return (
                         <div
                           key={p.code}
@@ -1027,29 +1050,23 @@ export default function ProductsPage() {
                           </div>
                           {/* Auto category badge */}
                           <div className="shrink-0">
-                            {suggestedCat ? (
-                              <select
-                                value={emCatMap[p.code] ?? ""}
-                                onChange={(e) => setEmCatMap((m) => ({ ...m, [p.code]: e.target.value }))}
-                                className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 focus:outline-none focus:ring-1 focus:ring-emerald-400 max-w-[120px] cursor-pointer"
-                              >
-                                <option value="">— Ангилалгүй</option>
-                                {categories.filter((c) => c.status === "active").map((c) => (
-                                  <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <select
-                                value={emCatMap[p.code] ?? ""}
-                                onChange={(e) => setEmCatMap((m) => ({ ...m, [p.code]: e.target.value }))}
-                                className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-slate-100 text-slate-500 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-300 max-w-[120px] cursor-pointer"
-                              >
-                                <option value="">— Ангилалгүй</option>
-                                {categories.filter((c) => c.status === "active").map((c) => (
-                                  <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                              </select>
-                            )}
+                            <select
+                              value={isUnmatched ? "__unmatched__" : (emCatMap[p.code] ?? "")}
+                              onChange={(e) => setEmCatMap((m) => ({ ...m, [p.code]: e.target.value }))}
+                              className={`text-[10px] font-semibold px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 max-w-[130px] cursor-pointer ${
+                                suggestedCat && !isUnmatched
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 focus:ring-emerald-400"
+                                  : isUnmatched
+                                  ? "bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-400"
+                                  : "bg-slate-100 text-slate-500 border-slate-200 focus:ring-slate-300"
+                              }`}
+                            >
+                              <option value="">— Ангилалгүй</option>
+                              <option value="__unmatched__">Бусад (авто)</option>
+                              {categories.filter((c) => c.status === "active").map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-sm font-semibold text-slate-800">₮{p.price.toLocaleString()}</p>

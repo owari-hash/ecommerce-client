@@ -450,6 +450,29 @@ function BentoTab({
   cats: Cat[];
 }) {
   const [active, setActive] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleTileImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (active === null) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      const next = tiles.map((t, i) => (i === active ? { ...t, image: url } : t));
+      onChange(next);
+    } catch { /* ignore */ } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function clearTileImage() {
+    if (active === null) return;
+    const next = tiles.map((t, i) => (i === active ? { ...t, image: "" } : t));
+    onChange(next);
+  }
 
   function pick(cat: Cat) {
     if (active === null) return;
@@ -571,16 +594,48 @@ function BentoTab({
         </div>
       </div>
 
-      {/* Category picker — shows below grid when a cell is active */}
+      {/* Category picker + image upload — shows below grid when a cell is active */}
       {active !== null && (
-        <div>
-          <p className="text-sm font-semibold text-slate-600 mb-2">
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-slate-600">
             <span className="inline-flex items-center gap-1">
               <span className="w-6 h-6 rounded-md bg-[#D32F2F] text-white text-xs font-black flex items-center justify-center">{active + 1}</span>
               байрлалд ангилал сонгох
             </span>
           </p>
           <CategoryPicker cats={cats} onPick={pick} />
+          {/* Image upload for already-filled tile */}
+          {tiles[active]?.label && (
+            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              {tiles[active].image ? (
+                <img src={tiles[active].image} alt={tiles[active].label} className="w-12 h-12 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 text-2xl">📁</div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-slate-700 truncate">{tiles[active].label}</p>
+                <p className="text-[10px] text-slate-400">{tiles[active].image ? "Зураг оруулсан" : "Зураг байхгүй"}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                  uploading ? "bg-slate-100 text-slate-400" : "bg-[#D32F2F] hover:bg-red-700 text-white"
+                }`}>
+                  {uploading ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  )}
+                  {uploading ? "..." : "Зураг оруулах"}
+                  <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={handleTileImageUpload} />
+                </label>
+                {tiles[active].image && (
+                  <button type="button" onClick={clearTileImage} className="px-2 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 transition-colors">
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -71,6 +71,7 @@ export default function ProductsPage() {
   const [importingPos, setImportingPos] = useState(false);
   const [importSuccess, setImportSuccess] = useState(false);
   const [posError, setPosError] = useState<string | null>(null);
+  const [posProgress, setPosProgress] = useState<{ done: number; total: number } | null>(null);
 
   async function openPosImport() {
     setPosModalOpen(true);
@@ -114,46 +115,43 @@ export default function ProductsPage() {
     if (codes.length === 0) return;
 
     setImportingPos(true);
+    setPosProgress({ done: 0, total: codes.length });
     try {
       const token = localStorage.getItem("ikna_admin_token");
       const searchParams = new URLSearchParams(window.location.search);
       const tenantParam = searchParams.get('tenant');
-      
-      const res = await fetch(`${API_BASE}/api/products/pos-import`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          codes,
-          tenantId: tenantParam || undefined,
-        }),
-      });
 
-      if (res.ok) {
-        setImportSuccess(true);
-        const prodRes = await fetch(`${API_BASE}/api/products`, {
-          headers: { Authorization: `Bearer ${token}` },
+      let done = 0;
+      for (const code of codes) {
+        await fetch(`${API_BASE}/api/products/pos-import`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ codes: [code], tenantId: tenantParam || undefined }),
         });
-        if (prodRes.ok) {
-          const prodBody = await prodRes.json();
-          if (prodBody?.data) {
-            const KEYS = { products: "ikna_client_products" };
-            localStorage.setItem(KEYS.products, JSON.stringify(prodBody.data));
-            window.location.reload();
-          }
-        }
-        setTimeout(() => {
-          setPosModalOpen(false);
-        }, 1500);
-      } else {
-        console.error("POS import failed");
+        done++;
+        setPosProgress({ done, total: codes.length });
       }
+
+      setImportSuccess(true);
+      const prodRes = await fetch(`${API_BASE}/api/products`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (prodRes.ok) {
+        const prodBody = await prodRes.json();
+        if (prodBody?.data) {
+          localStorage.setItem("ikna_client_products", JSON.stringify(prodBody.data));
+          window.location.reload();
+        }
+      }
+      setTimeout(() => setPosModalOpen(false), 1500);
     } catch (err) {
       console.error("Error during POS import", err);
     } finally {
       setImportingPos(false);
+      setPosProgress(null);
     }
   }
 
@@ -164,8 +162,8 @@ export default function ProductsPage() {
   const [emSearch, setEmSearch] = useState("");
   const [importingEm, setImportingEm] = useState(false);
   const [emError, setEmError] = useState<string | null>(null);
-  // Auto-category map: code -> suggested categoryId
   const [emCatMap, setEmCatMap] = useState<Record<string, string>>({});
+  const [emProgress, setEmProgress] = useState<{ done: number; total: number } | null>(null);
 
   // Auto image inject state
   const [imgModalOpen, setImgModalOpen] = useState(false);
@@ -181,20 +179,65 @@ export default function ProductsPage() {
   function autoAssignCategories(products: any[]): Record<string, string> {
     const map: Record<string, string> = {};
     if (!categories.length) return map;
+
+    // Mongolian stop words to ignore during matching
+    const MN_STOP = new Set(["байна","бүх","бүр","бүрэн","бүртгэл","бүтээгдэхүүн","нь","эс","эвэл","дээр","дэх","хийгээд","шинэ"]);
+
+    function tokenize(s: string): string[] {
+      return s.toLowerCase()
+        .replace(/[^\u0400-\u04ffa-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter((w) => w.length > 1 && !MN_STOP.has(w));
+    }
+
+    // Pre-build per-category token sets from name + slug
+    const catTokens: Array<{ id: string; tokens: string[]; nameTokens: string[] }> = categories
+      .filter((c: any) => c.status === "active")
+      .map((c: any) => ({
+        id: c.id,
+        tokens: [...new Set([
+          ...tokenize(c.name),
+          ...tokenize(c.slug ?? ""),
+        ])],
+        nameTokens: tokenize(c.name),
+      }));
+
     for (const p of products) {
-      const nameLower = (p.name ?? "").toLowerCase();
+      const prodName = (p.name ?? "").toLowerCase();
+      const prodTokens = tokenize(prodName);
       let best: { id: string; score: number } | null = null;
-      for (const cat of categories) {
-        if (cat.status !== "active") continue;
-        const catWords = cat.name.toLowerCase().split(/\s+/).filter((w: string) => w.length > 1);
+
+      for (const cat of catTokens) {
         let score = 0;
-        for (const w of catWords) {
-          if (nameLower.includes(w)) score += w.length;
+
+        // Signal 1: exact substring of full category name inside product name
+        const catNameFull = tokenize(categories.find((c: any) => c.id === cat.id)?.name ?? "").join(" ");
+        if (catNameFull && prodName.includes(catNameFull)) score += catNameFull.length * 3;
+
+        // Signal 2: per-token matches — weight by token length, bonus for name tokens vs slug tokens
+        for (const tok of cat.tokens) {
+          if (tok.length < 2) continue;
+          const isNameTok = cat.nameTokens.includes(tok);
+          if (prodName.includes(tok)) {
+            // Bonus for whole-word match
+            const wordBoundary = new RegExp(`(^|[\\s\\-])${tok.replace(/[-]/g, "\\-")}($|[\\s\\-])`).test(prodName);
+            score += tok.length * (isNameTok ? 2 : 1) * (wordBoundary ? 1.5 : 1);
+          }
         }
+
+        // Signal 3: product tokens that appear in category tokens
+        for (const pt of prodTokens) {
+          if (pt.length < 3) continue;
+          if (cat.tokens.some((ct) => ct.includes(pt) || pt.includes(ct))) {
+            score += pt.length * 0.5;
+          }
+        }
+
         if (score > 0 && (!best || score > best.score)) {
           best = { id: cat.id, score };
         }
       }
+
       if (best) map[p.code] = best.id;
     }
     return map;
@@ -245,53 +288,45 @@ export default function ProductsPage() {
     if (codes.length === 0) return;
 
     setImportingEm(true);
+    setEmProgress({ done: 0, total: codes.length });
     try {
       const token = localStorage.getItem("ikna_admin_token");
       const searchParams = new URLSearchParams(window.location.search);
       const tenantParam = searchParams.get('tenant');
 
-      // Build per-code category overrides from auto-assignment
-      const categoryOverrides: Record<string, string> = {};
+      let done = 0;
       for (const code of codes) {
+        const categoryOverrides: Record<string, string> = {};
         if (emCatMap[code]) categoryOverrides[code] = emCatMap[code];
-      }
-      
-      const res = await fetch(`${API_BASE}/api/products/em-import`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          codes,
-          categoryOverrides,
-          tenantId: tenantParam || undefined,
-        }),
-      });
-
-      if (res.ok) {
-        setImportSuccess(true);
-        const prodRes = await fetch(`${API_BASE}/api/products`, {
-          headers: { Authorization: `Bearer ${token}` },
+        await fetch(`${API_BASE}/api/products/em-import`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ codes: [code], categoryOverrides, tenantId: tenantParam || undefined }),
         });
-        if (prodRes.ok) {
-          const prodBody = await prodRes.json();
-          if (prodBody?.data) {
-            const KEYS = { products: "ikna_client_products" };
-            localStorage.setItem(KEYS.products, JSON.stringify(prodBody.data));
-            window.location.reload();
-          }
-        }
-        setTimeout(() => {
-          setEmModalOpen(false);
-        }, 1500);
-      } else {
-        console.error("EM import failed");
+        done++;
+        setEmProgress({ done, total: codes.length });
       }
+
+      setImportSuccess(true);
+      const prodRes = await fetch(`${API_BASE}/api/products`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (prodRes.ok) {
+        const prodBody = await prodRes.json();
+        if (prodBody?.data) {
+          localStorage.setItem("ikna_client_products", JSON.stringify(prodBody.data));
+          window.location.reload();
+        }
+      }
+      setTimeout(() => setEmModalOpen(false), 1500);
     } catch (err) {
       console.error("Error during EM import", err);
     } finally {
       setImportingEm(false);
+      setEmProgress(null);
     }
   }
 
@@ -814,28 +849,44 @@ export default function ProductsPage() {
                 )}
               </div>
 
-              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl shrink-0 flex items-center justify-between gap-3 mt-auto">
-                {importSuccess ? (
-                  <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Бараа амжилттай татагдлаа!
+              <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 rounded-b-2xl shrink-0 space-y-2 mt-auto">
+                {posProgress && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] text-slate-500">
+                      <span>Татаж байна... <span className="font-bold text-slate-700">{posProgress.done}/{posProgress.total}</span></span>
+                      <span>{Math.round((posProgress.done / posProgress.total) * 100)}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#D32F2F] rounded-full transition-all duration-300"
+                        style={{ width: `${(posProgress.done / posProgress.total) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-slate-400">
-                    Сонгосон: <span className="font-bold text-slate-700">{Object.keys(selectedPosCodes).filter(c => selectedPosCodes[c]).length} бараа</span>
-                  </p>
                 )}
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setPosModalOpen(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">Болих</button>
-                  <button
-                    type="submit"
-                    disabled={importingPos || posLoading || Object.keys(selectedPosCodes).filter(c => selectedPosCodes[c]).length === 0}
-                    className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white px-5 py-2 rounded-xl text-xs font-semibold transition-colors shadow-sm disabled:opacity-60"
-                  >
-                    {importingPos ? "Татаж байна..." : "Сонгосныг татах"}
-                  </button>
+                <div className="flex items-center justify-between gap-3">
+                  {importSuccess ? (
+                    <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Бараа амжилттай татагдлаа!
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400">
+                      Сонгосон: <span className="font-bold text-slate-700">{Object.keys(selectedPosCodes).filter(c => selectedPosCodes[c]).length} бараа</span>
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setPosModalOpen(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">Болих</button>
+                    <button
+                      type="submit"
+                      disabled={importingPos || posLoading || Object.keys(selectedPosCodes).filter(c => selectedPosCodes[c]).length === 0}
+                      className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white px-5 py-2 rounded-xl text-xs font-semibold transition-colors shadow-sm disabled:opacity-60"
+                    >
+                      {importingPos ? "Татаж байна..." : "Сонгосныг татах"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
@@ -1011,31 +1062,47 @@ export default function ProductsPage() {
                 )}
               </div>
 
-              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl shrink-0 flex items-center justify-between gap-3 mt-auto">
-                {importSuccess ? (
-                  <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Эм амжилттай татагдлаа!
+              <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 rounded-b-2xl shrink-0 space-y-2 mt-auto">
+                {emProgress && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] text-slate-500">
+                      <span>Татаж байна... <span className="font-bold text-slate-700">{emProgress.done}/{emProgress.total}</span></span>
+                      <span>{Math.round((emProgress.done / emProgress.total) * 100)}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#D32F2F] rounded-full transition-all duration-300"
+                        style={{ width: `${(emProgress.done / emProgress.total) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-xs text-slate-400">
-                    Сонгосон: <span className="font-bold text-slate-700">{selectedCount} эм</span>
-                    {selectedCount > 0 && Object.values(emCatMap).filter(Boolean).length > 0 && (
-                      <span className="ml-2 text-emerald-600">· {Object.keys(emCatMap).filter((c) => selectedEmCodes[c] && emCatMap[c]).length} ангилал оноогдсон</span>
-                    )}
-                  </p>
                 )}
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setEmModalOpen(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">Болих</button>
-                  <button
-                    type="submit"
-                    disabled={importingEm || emLoading || selectedCount === 0}
-                    className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white px-5 py-2 rounded-xl text-xs font-semibold transition-colors shadow-sm disabled:opacity-60"
-                  >
-                    {importingEm ? "Татаж байна..." : "Сонгосныг татах"}
-                  </button>
+                <div className="flex items-center justify-between gap-3">
+                  {importSuccess ? (
+                    <div className="flex items-center gap-2 text-emerald-600 text-sm font-medium">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Эм амжилттай татагдлаа!
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-400">
+                      Сонгосон: <span className="font-bold text-slate-700">{selectedCount} эм</span>
+                      {selectedCount > 0 && Object.keys(emCatMap).filter((c) => selectedEmCodes[c] && emCatMap[c]).length > 0 && (
+                        <span className="ml-2 text-emerald-600">· {Object.keys(emCatMap).filter((c) => selectedEmCodes[c] && emCatMap[c]).length} ангилал оноогдсон</span>
+                      )}
+                    </p>
+                  )}
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setEmModalOpen(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">Болих</button>
+                    <button
+                      type="submit"
+                      disabled={importingEm || emLoading || selectedCount === 0}
+                      className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white px-5 py-2 rounded-xl text-xs font-semibold transition-colors shadow-sm disabled:opacity-60"
+                    >
+                      {importingEm ? "Татаж байна..." : "Сонгосныг татах"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>

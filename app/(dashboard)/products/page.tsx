@@ -164,6 +164,8 @@ export default function ProductsPage() {
   const [emSearch, setEmSearch] = useState("");
   const [importingEm, setImportingEm] = useState(false);
   const [emError, setEmError] = useState<string | null>(null);
+  // Auto-category map: code -> suggested categoryId
+  const [emCatMap, setEmCatMap] = useState<Record<string, string>>({});
 
   // Auto image inject state
   const [imgModalOpen, setImgModalOpen] = useState(false);
@@ -176,11 +178,34 @@ export default function ProductsPage() {
   const [imgPreviewData, setImgPreviewData] = useState<Record<string, { urls: string[]; selectedIndex: number }>>({});
   const [imgSuccess, setImgSuccess] = useState(false);
 
+  function autoAssignCategories(products: any[]): Record<string, string> {
+    const map: Record<string, string> = {};
+    if (!categories.length) return map;
+    for (const p of products) {
+      const nameLower = (p.name ?? "").toLowerCase();
+      let best: { id: string; score: number } | null = null;
+      for (const cat of categories) {
+        if (cat.status !== "active") continue;
+        const catWords = cat.name.toLowerCase().split(/\s+/).filter((w: string) => w.length > 1);
+        let score = 0;
+        for (const w of catWords) {
+          if (nameLower.includes(w)) score += w.length;
+        }
+        if (score > 0 && (!best || score > best.score)) {
+          best = { id: cat.id, score };
+        }
+      }
+      if (best) map[p.code] = best.id;
+    }
+    return map;
+  }
+
   async function openEmImport() {
     setEmModalOpen(true);
     setEmLoading(true);
     setEmError(null);
     setSelectedEmCodes({});
+    setEmCatMap({});
     setEmSearch("");
     setImportSuccess(false);
 
@@ -196,7 +221,9 @@ export default function ProductsPage() {
 
       if (res.ok) {
         const body = await res.json();
-        setEmProducts(body.data || []);
+        const prods = body.data || [];
+        setEmProducts(prods);
+        setEmCatMap(autoAssignCategories(prods));
       } else {
         const body = await res.json().catch(() => ({}));
         const errMsg = body.error?.message || body.error || "EM системтэй холбогдоход алдаа гарлаа.";
@@ -222,6 +249,12 @@ export default function ProductsPage() {
       const token = localStorage.getItem("ikna_admin_token");
       const searchParams = new URLSearchParams(window.location.search);
       const tenantParam = searchParams.get('tenant');
+
+      // Build per-code category overrides from auto-assignment
+      const categoryOverrides: Record<string, string> = {};
+      for (const code of codes) {
+        if (emCatMap[code]) categoryOverrides[code] = emCatMap[code];
+      }
       
       const res = await fetch(`${API_BASE}/api/products/em-import`, {
         method: "POST",
@@ -231,6 +264,7 @@ export default function ProductsPage() {
         },
         body: JSON.stringify({
           codes,
+          categoryOverrides,
           tenantId: tenantParam || undefined,
         }),
       });
@@ -810,7 +844,32 @@ export default function ProductsPage() {
       )}
 
       {/* EM Import Modal */}
-      {emModalOpen && (
+      {emModalOpen && (() => {
+        const emFiltered = emProducts.filter((p) =>
+          p.name.toLowerCase().includes(emSearch.toLowerCase()) ||
+          p.code.toLowerCase().includes(emSearch.toLowerCase())
+        );
+        const importable = emFiltered.filter((p) => !p.alreadyImported);
+        const selectedCount = Object.keys(selectedEmCodes).filter((c) => selectedEmCodes[c]).length;
+        const allSelected = importable.length > 0 && importable.every((p) => selectedEmCodes[p.code]);
+
+        function toggleAll() {
+          if (allSelected) {
+            setSelectedEmCodes((s) => {
+              const next = { ...s };
+              importable.forEach((p) => { delete next[p.code]; });
+              return next;
+            });
+          } else {
+            setSelectedEmCodes((s) => {
+              const next = { ...s };
+              importable.forEach((p) => { next[p.code] = true; });
+              return next;
+            });
+          }
+        }
+
+        return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl animate-fade-in relative max-h-[85vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
@@ -836,6 +895,23 @@ export default function ProductsPage() {
                   className="border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs w-full focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
                 />
               </div>
+              {/* Check-all toggle */}
+              {!emLoading && !emError && importable.length > 0 && (
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                    allSelected
+                      ? "bg-[#D32F2F] text-white border-[#D32F2F]"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-[#D32F2F] hover:text-[#D32F2F]"
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {allSelected ? "Болих" : "Бүгд"}
+                </button>
+              )}
             </div>
 
             <form onSubmit={handleEmImport} className="flex flex-col flex-1 overflow-hidden">
@@ -859,11 +935,8 @@ export default function ProductsPage() {
                     <p className="text-[11px] text-rose-600/90 font-mono mt-2 bg-white/80 p-3 rounded-xl border border-rose-50 select-text overflow-x-auto text-left leading-relaxed">
                       {emError}
                     </p>
-                    <button
-                      type="button"
-                      onClick={openEmImport}
-                      className="mt-5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-                    >
+                    <button type="button" onClick={openEmImport}
+                      className="mt-5 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors">
                       Дахин оролдох
                     </button>
                   </div>
@@ -872,16 +945,14 @@ export default function ProductsPage() {
                     <p className="text-sm font-semibold">EM дээр эм олдсонгүй.</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {emProducts
-                      .filter((p) =>
-                        p.name.toLowerCase().includes(emSearch.toLowerCase()) ||
-                        p.code.toLowerCase().includes(emSearch.toLowerCase())
-                      )
-                      .map((p) => (
+                  <div className="space-y-1.5">
+                    {emFiltered.map((p) => {
+                      const suggestedCatId = emCatMap[p.code];
+                      const suggestedCat = suggestedCatId ? categories.find((c) => c.id === suggestedCatId) : null;
+                      return (
                         <div
                           key={p.code}
-                          className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${
+                          className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
                             p.alreadyImported
                               ? "bg-slate-50 border-slate-100 opacity-60"
                               : selectedEmCodes[p.code]
@@ -889,27 +960,53 @@ export default function ProductsPage() {
                               : "bg-white border-slate-100 hover:border-slate-200"
                           }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              disabled={p.alreadyImported}
-                              checked={!!selectedEmCodes[p.code]}
-                              onChange={(e) =>
-                                setSelectedEmCodes((s) => ({ ...s, [p.code]: e.target.checked }))
-                              }
-                              className="rounded border-slate-300 text-[#D32F2F] focus:ring-[#D32F2F] w-4 h-4 cursor-pointer disabled:cursor-not-allowed"
-                            />
-                            <div>
-                              <p className="text-sm font-semibold text-slate-800">{p.name}</p>
-                              <p className="text-[10px] font-mono text-slate-400">Код: {p.code} {p.barcode && `· Баркод: ${p.barcode}`}</p>
-                            </div>
+                          <input
+                            type="checkbox"
+                            disabled={p.alreadyImported}
+                            checked={!!selectedEmCodes[p.code]}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setSelectedEmCodes((s) => ({ ...s, [p.code]: checked }));
+                            }}
+                            className="rounded border-slate-300 text-[#D32F2F] focus:ring-[#D32F2F] w-4 h-4 cursor-pointer disabled:cursor-not-allowed shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{p.name}</p>
+                            <p className="text-[10px] font-mono text-slate-400">Код: {p.code}{p.barcode ? ` · ${p.barcode}` : ""}</p>
                           </div>
-                          <div className="text-right">
+                          {/* Auto category badge */}
+                          <div className="shrink-0">
+                            {suggestedCat ? (
+                              <select
+                                value={emCatMap[p.code] ?? ""}
+                                onChange={(e) => setEmCatMap((m) => ({ ...m, [p.code]: e.target.value }))}
+                                className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 focus:outline-none focus:ring-1 focus:ring-emerald-400 max-w-[120px] cursor-pointer"
+                              >
+                                <option value="">— Ангилалгүй</option>
+                                {categories.filter((c) => c.status === "active").map((c) => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <select
+                                value={emCatMap[p.code] ?? ""}
+                                onChange={(e) => setEmCatMap((m) => ({ ...m, [p.code]: e.target.value }))}
+                                className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-slate-100 text-slate-500 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-300 max-w-[120px] cursor-pointer"
+                              >
+                                <option value="">— Ангилалгүй</option>
+                                {categories.filter((c) => c.status === "active").map((c) => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
                             <p className="text-sm font-semibold text-slate-800">₮{p.price.toLocaleString()}</p>
-                            <p className="text-xs text-slate-500">Үлдэгдэл: <span className="font-semibold text-slate-700">{p.stock}</span></p>
+                            <p className="text-xs text-slate-400">{p.stock} үлд</p>
                           </div>
                         </div>
-                      ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -924,14 +1021,17 @@ export default function ProductsPage() {
                   </div>
                 ) : (
                   <p className="text-xs text-slate-400">
-                    Сонгосон: <span className="font-bold text-slate-700">{Object.keys(selectedEmCodes).filter(c => selectedEmCodes[c]).length} эм</span>
+                    Сонгосон: <span className="font-bold text-slate-700">{selectedCount} эм</span>
+                    {selectedCount > 0 && Object.values(emCatMap).filter(Boolean).length > 0 && (
+                      <span className="ml-2 text-emerald-600">· {Object.keys(emCatMap).filter((c) => selectedEmCodes[c] && emCatMap[c]).length} ангилал оноогдсон</span>
+                    )}
                   </p>
                 )}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setEmModalOpen(false)} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">Болих</button>
                   <button
                     type="submit"
-                    disabled={importingEm || emLoading || Object.keys(selectedEmCodes).filter(c => selectedEmCodes[c]).length === 0}
+                    disabled={importingEm || emLoading || selectedCount === 0}
                     className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white px-5 py-2 rounded-xl text-xs font-semibold transition-colors shadow-sm disabled:opacity-60"
                   >
                     {importingEm ? "Татаж байна..." : "Сонгосныг татах"}
@@ -941,7 +1041,8 @@ export default function ProductsPage() {
             </form>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Auto Image Inject Modal */}
       {imgModalOpen && (

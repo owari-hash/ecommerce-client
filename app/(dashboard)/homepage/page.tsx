@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTenantAdmin } from "../../lib/TenantAdminContext";
 import type { BannerSlide, BentoTile } from "../../lib/types";
 
@@ -21,6 +21,22 @@ function getApiBase() {
   if (typeof window !== "undefined")
     return `${window.location.protocol}//${window.location.hostname}:8000`;
   return "http://localhost:8000";
+}
+
+async function uploadImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const token = localStorage.getItem("ikna_admin_token");
+  const res = await fetch(`${getApiBase()}/api/upload`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Upload failed");
+  const body = await res.json();
+  const path: string = body.data?.url ?? body.url ?? body.path ?? "";
+  const m = path.match(/\/upload\/(.+)$/);
+  return m ? `${getApiBase()}/upload/${m[1]}` : path;
 }
 
 function resolveCatImage(image?: string): { url: string; emoji: string } {
@@ -152,8 +168,24 @@ function BannerTab({
 }) {
   // active: which slot is open for category picking
   const [active, setActive] = useState<number | null>(null);
-  // customImg: which slot is open for custom image override
   const [customImgOpen, setCustomImgOpen] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, idx: number) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      setCustomImage(idx, url);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   function pick(idx: number, cat: Cat) {
     const slide = catToSlide(cat);
@@ -310,6 +342,31 @@ function BannerTab({
                       placeholder="https://... зургийн URL"
                       className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
                     />
+                    <label className={`cursor-pointer shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                      uploading
+                        ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                    }`}>
+                      {uploading ? (
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                        </svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                      {uploading ? "..." : "Оруулах"}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        disabled={uploading}
+                        onChange={(e) => handleFileUpload(e, idx)}
+                      />
+                    </label>
                   </div>
                   {slide._customImage && (
                     <button type="button" onClick={() => clearCustomImage(idx)}

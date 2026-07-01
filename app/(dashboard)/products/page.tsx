@@ -499,9 +499,10 @@ export default function ProductsPage() {
 
   const filtered = visibleProducts.filter((p) => {
     const matchSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.slug.toLowerCase().includes(search.toLowerCase());
+      (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.slug || "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || p.status === filterStatus;
+    return matchSearch && matchStatus;
   });
 
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);

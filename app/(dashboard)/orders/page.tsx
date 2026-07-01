@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTenantAdmin } from "../../lib/TenantAdminContext";
 import type { Order, OrderStatus } from "../../lib/types";
 
@@ -15,7 +15,7 @@ const STATUS_STYLE: Record<OrderStatus, string> = {
 const STATUS_LABEL: Record<OrderStatus, string> = {
   pending: "Хүлээгдэж байна",
   processing: "Боловсруулж байна",
-  shipped: "Илгээгдсэн",
+  shipped: "Хүргэлтэд гарсан",
   delivered: "Хүргэгдсэн",
   cancelled: "Цуцлагдсан",
 };
@@ -38,6 +38,14 @@ export default function OrdersPage() {
   });
 
   const sorted = [...filtered].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  // Pagination
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); }, [search, filterStatus]);
+  const pageCount = Math.ceil(sorted.length / PAGE_SIZE);
+  const pageSafe = Math.min(page, Math.max(1, pageCount));
+  const paged = sorted.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
   return (
     <div className="space-y-5">
@@ -99,7 +107,7 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((o) => (
+              {paged.map((o) => (
                 <tr key={o.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-3">
                     <button
@@ -143,6 +151,46 @@ export default function OrdersPage() {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <p className="text-xs text-slate-400">
+            {sorted.length} захиалгаас {(pageSafe - 1) * PAGE_SIZE + 1}–{Math.min(pageSafe * PAGE_SIZE, sorted.length)}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setPage(pageSafe - 1)}
+              disabled={pageSafe <= 1}
+              className="min-w-9 h-9 px-3 rounded-lg text-sm font-bold border border-slate-200 text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .filter((n) => n === 1 || n === pageCount || Math.abs(n - pageSafe) <= 1)
+              .map((n, idx, arr) => (
+                <span key={n} className="flex items-center gap-1.5">
+                  {idx > 0 && n - arr[idx - 1] > 1 && <span className="text-slate-400 px-1">…</span>}
+                  <button
+                    onClick={() => setPage(n)}
+                    className={`min-w-9 h-9 px-3 rounded-lg text-sm font-bold transition-colors ${
+                      n === pageSafe ? "bg-[#D32F2F] text-white" : "border border-slate-200 text-slate-700 hover:border-[#D32F2F] hover:text-[#D32F2F]"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                </span>
+              ))}
+            <button
+              onClick={() => setPage(pageSafe + 1)}
+              disabled={pageSafe >= pageCount}
+              className="min-w-9 h-9 px-3 rounded-lg text-sm font-bold border border-slate-200 text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Order detail modal */}
       {detailOrder && (

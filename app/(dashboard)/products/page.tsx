@@ -62,6 +62,21 @@ export default function ProductsPage() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const imageFileRef = useRef<HTMLInputElement>(null);
 
+  // Pagination for main products list
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterStatus]);
+
+  // History modal states
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const HISTORY_PAGE_SIZE = 10;
+
   const { settings } = useTenantAdmin();
   const [posModalOpen, setPosModalOpen] = useState(false);
   const [posLoading, setPosLoading] = useState(false);
@@ -72,6 +87,7 @@ export default function ProductsPage() {
   const [importSuccess, setImportSuccess] = useState(false);
   const [posError, setPosError] = useState<string | null>(null);
   const [posProgress, setPosProgress] = useState<{ done: number; total: number } | null>(null);
+
 
   async function openPosImport() {
     setPosModalOpen(true);
@@ -486,8 +502,12 @@ export default function ProductsPage() {
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.slug.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "all" || p.status === filterStatus;
-    return matchSearch && matchStatus;
   });
+
+  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  const pageSafe = Math.min(page, Math.max(1, pageCount));
+  const pagedProducts = filtered.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+
 
   function openAdd() {
     setForm({ ...EMPTY_FORM, renterId: isRenter ? currentRenter.id : null });
@@ -509,7 +529,38 @@ export default function ProductsPage() {
     setModal("edit");
   }
 
+  async function openHistory(p: Product) {
+    setHistoryProduct(p);
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    setHistoryData([]);
+    setHistoryPage(1);
+
+    try {
+      const token = localStorage.getItem("ikna_admin_token");
+      const searchParams = new URLSearchParams(window.location.search);
+      const tenantParam = searchParams.get('tenant');
+      const qs = tenantParam ? `?tenantId=${encodeURIComponent(tenantParam)}` : '';
+      
+      const res = await fetch(`${API_BASE}/api/products/${p.id}/history${qs}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
+      if (res.ok) {
+        const body = await res.json();
+        setHistoryData(body.data || []);
+      } else {
+        console.error("Failed to load product history");
+      }
+    } catch (err) {
+      console.error("Error loading product history", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
   function closeModal() { setModal(null); setEditId(null); }
+
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -681,14 +732,14 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => {
+              {pagedProducts.map((p) => {
                 const canEdit = !isRenter || p.renterId === currentRenter?.id;
                 return (
                   <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
                         {p.images[0] ? (
-                          <img src={resolveImageUrl(p.images[0])} alt={p.name} className="w-10 h-10 object-cover rounded-lg border border-slate-100 flex-shrink-0" />
+                           <img src={resolveImageUrl(p.images[0])} alt={p.name} className="w-10 h-10 object-cover rounded-lg border border-slate-100 flex-shrink-0" />
                         ) : (
                           <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
                             <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -739,21 +790,27 @@ export default function ProductsPage() {
                       </td>
                     )}
                     <td className="px-6 py-3">
-                      {canEdit ? (
-                        <div className="flex gap-2">
-                          <button onClick={() => openEdit(p)} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors font-semibold">
-                            Засах
-                          </button>
-                          <button
-                            onClick={() => { if (confirm(`"${p.name}" устгах уу?`)) deleteProduct(p.id); }}
-                            className="text-xs bg-red-50 hover:bg-red-100 text-[#D32F2F] px-3 py-1.5 rounded-lg transition-colors font-semibold"
-                          >
-                            Устгах
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-300">—</span>
-                      )}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openHistory(p)}
+                          className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg transition-colors font-semibold"
+                        >
+                          Түүх
+                        </button>
+                        {canEdit && (
+                          <>
+                            <button onClick={() => openEdit(p)} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg transition-colors font-semibold">
+                              Засах
+                            </button>
+                            <button
+                              onClick={() => { if (confirm(`"${p.name}" устгах уу?`)) deleteProduct(p.id); }}
+                              className="text-xs bg-red-50 hover:bg-red-100 text-[#D32F2F] px-3 py-1.5 rounded-lg transition-colors font-semibold"
+                            >
+                              Устгах
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -761,10 +818,51 @@ export default function ProductsPage() {
               {filtered.length === 0 && (
                 <tr><td colSpan={isRenter ? 7 : 8} className="px-6 py-12 text-center text-slate-400 text-sm">Бүтээгдэхүүн олдсонгүй</td></tr>
               )}
+
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Products Pagination */}
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between flex-wrap gap-3 mt-3">
+          <p className="text-xs text-slate-400">
+            Нийт {filtered.length} бүтээгдэхүүнээс {(pageSafe - 1) * PAGE_SIZE + 1}–{Math.min(pageSafe * PAGE_SIZE, filtered.length)}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setPage(pageSafe - 1)}
+              disabled={pageSafe <= 1}
+              className="min-w-9 h-9 px-3 rounded-lg text-sm font-bold border border-slate-200 text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ‹
+            </button>
+            {Array.from({ length: pageCount }, (_, i) => i + 1)
+              .filter((n) => n === 1 || n === pageCount || Math.abs(n - pageSafe) <= 1)
+              .map((n, idx, arr) => (
+                <span key={n} className="flex items-center gap-1.5">
+                  {idx > 0 && n - arr[idx - 1] > 1 && <span className="text-slate-400 px-1">…</span>}
+                  <button
+                    onClick={() => setPage(n)}
+                    className={`min-w-9 h-9 px-3 rounded-lg text-sm font-bold transition-colors ${
+                      n === pageSafe ? "bg-[#D32F2F] text-white" : "border border-slate-200 text-slate-700 hover:border-[#D32F2F] hover:text-[#D32F2F]"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                </span>
+              ))}
+            <button
+              onClick={() => setPage(pageSafe + 1)}
+              disabled={pageSafe >= pageCount}
+              className="min-w-9 h-9 px-3 rounded-lg text-sm font-bold border border-slate-200 text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* POS Import Modal */}
       {posModalOpen && (
@@ -1660,6 +1758,144 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+
+      {/* History Modal */}
+      {historyOpen && historyProduct && (() => {
+        const pageCount = Math.ceil(historyData.length / HISTORY_PAGE_SIZE);
+        const pageSafe = Math.min(historyPage, Math.max(1, pageCount));
+        const pagedHistory = historyData.slice((pageSafe - 1) * HISTORY_PAGE_SIZE, pageSafe * HISTORY_PAGE_SIZE);
+
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl animate-fade-in relative max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-lg">Нөөцийн хөдөлгөөний түүх</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{historyProduct.name} · ({historyProduct.slug})</p>
+                </div>
+                <button
+                  onClick={() => { setHistoryOpen(false); setHistoryProduct(null); }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                {historyLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+                    <svg className="w-8 h-8 animate-spin text-[#D32F2F]" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span className="text-sm font-semibold">Түүхийг ачаалж байна...</span>
+                  </div>
+                ) : historyData.length === 0 ? (
+                  <div className="text-center py-20 text-slate-400">
+                    <svg className="w-12 h-12 mx-auto text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm font-semibold">Барааны хөдөлгөөний түүх олдсонгүй.</p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+                    <table className="w-full text-left text-sm text-slate-600">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-100 text-xs font-semibold uppercase text-slate-500">
+                          <th className="px-5 py-3">Огноо</th>
+                          <th className="px-5 py-3">Үйлдэл / Төрөл</th>
+                          <th className="px-5 py-3">Баримтын №</th>
+                          <th className="px-5 py-3 text-right">Тоо хэмжээ</th>
+                          <th className="px-5 py-3 text-right">Өмнөх үлдэгдэл</th>
+                          <th className="px-5 py-3">Хариуцагч / Ажилтан</th>
+                          <th className="px-5 py-3">Тайлбар</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pagedHistory.map((item, index) => {
+                          const isAdd = item.flow === "orlogo";
+                          const dateStr = item.date ? new Date(item.date).toLocaleString("mn-MN") : "—";
+                          return (
+                            <tr key={index} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                              <td className="px-5 py-3 text-xs font-medium text-slate-500 font-mono whitespace-nowrap">{dateStr}</td>
+                              <td className="px-5 py-3">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                  item.type === "Захиалга" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                                  item.type === "Орлого" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                  item.type === "Зарлага" ? "bg-rose-50 text-rose-700 border-rose-200" :
+                                  item.type === "pos" ? "bg-violet-50 text-violet-700 border-violet-200" :
+                                  item.type === "Онлайн" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                                  "bg-slate-100 text-slate-600 border-slate-200"
+                                }`}>
+                                  {item.type}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3 font-mono text-xs font-bold text-slate-700">{item.refNo || "—"}</td>
+                              <td className="px-5 py-3 text-right font-semibold">
+                                <span className={isAdd ? "text-emerald-600" : "text-rose-600"}>
+                                  {isAdd ? "+" : "-"}{item.qty}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3 text-right text-slate-400 font-medium font-mono">{item.prevStock !== undefined ? item.prevStock : "—"}</td>
+                              <td className="px-5 py-3 text-slate-700 font-medium">{item.actor || "—"}</td>
+                              <td className="px-5 py-3 text-xs text-slate-400 max-w-[200px] truncate" title={item.note}>{item.note || "—"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer / Pagination */}
+              {!historyLoading && pageCount > 1 && (
+                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 rounded-b-2xl shrink-0 flex items-center justify-between gap-3 mt-auto">
+                  <p className="text-xs text-slate-400">
+                    Нийт {historyData.length} бичлэгээс {(pageSafe - 1) * HISTORY_PAGE_SIZE + 1}–{Math.min(pageSafe * HISTORY_PAGE_SIZE, historyData.length)}
+                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setHistoryPage(pageSafe - 1)}
+                      disabled={pageSafe <= 1}
+                      className="min-w-8 h-8 px-2 rounded-lg text-xs font-bold border border-slate-200 text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-40 disabled:cursor-not-allowed bg-white"
+                    >
+                      ‹
+                    </button>
+                    {Array.from({ length: pageCount }, (_, i) => i + 1)
+                      .filter((n) => n === 1 || n === pageCount || Math.abs(n - pageSafe) <= 1)
+                      .map((n, idx, arr) => (
+                        <span key={n} className="flex items-center gap-1">
+                          {idx > 0 && n - arr[idx - 1] > 1 && <span className="text-slate-400 px-1 text-xs">…</span>}
+                          <button
+                            onClick={() => setHistoryPage(n)}
+                            className={`min-w-8 h-8 px-2 rounded-lg text-xs font-bold transition-colors ${
+                              n === pageSafe ? "bg-[#D32F2F] text-white animate-fade-in" : "border border-slate-200 text-slate-700 hover:border-[#D32F2F] hover:text-[#D32F2F] bg-white"
+                            }`}
+                          >
+                            {n}
+                          </button>
+                        </span>
+                      ))}
+                    <button
+                      onClick={() => setHistoryPage(pageSafe + 1)}
+                      disabled={pageSafe >= pageCount}
+                      className="min-w-8 h-8 px-2 rounded-lg text-xs font-bold border border-slate-200 text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-40 disabled:cursor-not-allowed bg-white"
+                    >
+                      ›
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
+

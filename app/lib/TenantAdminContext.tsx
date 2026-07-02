@@ -51,11 +51,11 @@ const SEED_RENTERS: Renter[] = [
 ];
 
 const SEED_CATEGORIES: Category[] = [
-  { id: "cat1", name: "Электроник", slug: "electronics", parentId: null, image: "", status: "active", createdAt: "2026-05-01" },
-  { id: "cat2", name: "Хувцас", slug: "clothing", parentId: null, image: "", status: "active", createdAt: "2026-05-01" },
-  { id: "cat3", name: "Гэр ахуй", slug: "home", parentId: null, image: "", status: "active", createdAt: "2026-05-01" },
-  { id: "cat4", name: "Утас & Таблет", slug: "phones", parentId: "cat1", image: "", status: "active", createdAt: "2026-05-01" },
-  { id: "cat5", name: "Зурагт & Дуу чимээ", slug: "tv-audio", parentId: "cat1", image: "", status: "active", createdAt: "2026-05-01" },
+  { id: "cat1", name: "Электроник", slug: "electronics", parentId: null, image: "", status: "active", sortOrder: 0, createdAt: "2026-05-01" },
+  { id: "cat2", name: "Хувцас", slug: "clothing", parentId: null, image: "", status: "active", sortOrder: 1, createdAt: "2026-05-01" },
+  { id: "cat3", name: "Гэр ахуй", slug: "home", parentId: null, image: "", status: "active", sortOrder: 2, createdAt: "2026-05-01" },
+  { id: "cat4", name: "Утас & Таблет", slug: "phones", parentId: "cat1", image: "", status: "active", sortOrder: 0, createdAt: "2026-05-01" },
+  { id: "cat5", name: "Зурагт & Дуу чимээ", slug: "tv-audio", parentId: "cat1", image: "", status: "active", sortOrder: 1, createdAt: "2026-05-01" },
 ];
 
 const SEED_BRANDS: Brand[] = [
@@ -231,6 +231,7 @@ type TenantAdminCtx = {
   addCategory: (c: Omit<Category, "id" | "createdAt">) => void;
   updateCategory: (id: string, patch: Partial<Omit<Category, "id">>) => void;
   deleteCategory: (id: string) => void;
+  reorderCategories: (ordered: { id: string; sortOrder: number }[]) => Promise<void>;
 
   // Brands
   brands: Brand[];
@@ -762,7 +763,8 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const next = [...categories, { ...c, id: `cat${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10) }];
+      const maxOrder = categories.reduce((m, x) => Math.max(m, x.sortOrder ?? 0), -1);
+      const next = [...categories, { ...c, id: `cat${Date.now()}`, sortOrder: maxOrder + 1, createdAt: new Date().toISOString().slice(0, 10) }];
       setCategories(next);
       save(KEYS.categories, next);
     },
@@ -818,6 +820,30 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
       save(KEYS.categories, next);
     },
     [categories, fetchData]
+  );
+
+  const reorderCategories = useCallback(
+    async (ordered: { id: string; sortOrder: number }[]) => {
+      const next = categories.map((c) => {
+        const found = ordered.find((o) => o.id === c.id);
+        return found ? { ...c, sortOrder: found.sortOrder } : c;
+      }).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      setCategories(next);
+      save(KEYS.categories, next);
+      const token = localStorage.getItem("ikna_admin_token");
+      if (token) {
+        try {
+          await fetch(`${API_BASE}/api/categories/reorder`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ order: ordered }),
+          });
+        } catch (e) {
+          console.error("Failed to persist category order:", e);
+        }
+      }
+    },
+    [categories]
   );
 
   // ── Brands CRUD ──────────────────────────────────────────────────────────────
@@ -922,6 +948,7 @@ export function TenantAdminProvider({ children }: { children: ReactNode }) {
         addCategory,
         updateCategory,
         deleteCategory,
+        reorderCategories,
         brands,
         addBrand,
         updateBrand,

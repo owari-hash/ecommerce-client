@@ -35,6 +35,7 @@ export type Category = {
   image: string;
   banner?: string;
   status: "active" | "inactive";
+  sortOrder: number;
   createdAt: string;
 };
 

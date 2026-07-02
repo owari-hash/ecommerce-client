@@ -234,155 +234,179 @@ function BannerTab({
         <p className="text-xs text-slate-400 mt-0.5">{hint}</p>
       </div>
 
-      <div className="space-y-3">
+      {/* ── Horizontal slide row ────────────────────────────────────── */}
+      <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
         {slides.map((slide, idx) => {
           const filled = !!slide.title;
           const isOpen = active === idx;
           const isImgOpen = customImgOpen === idx;
 
           return (
-            <div key={idx} className="rounded-xl border border-slate-200 overflow-hidden">
-              {/* ── Slide row ─────────────────────────────────── */}
-              <div className={`flex items-center gap-3 p-3 ${
-                isOpen ? "bg-red-50/40" : "bg-white"
-              }`}>
-                {/* Slot number */}
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-black ${
-                  isOpen ? "bg-[#D32F2F] text-white" : "bg-slate-100 text-slate-500"
-                }`}>
+            <div
+              key={idx}
+              className={`flex-shrink-0 w-48 rounded-xl border-2 overflow-hidden transition-all ${
+                isOpen
+                  ? "border-[#D32F2F] shadow-md"
+                  : filled
+                  ? "border-emerald-200"
+                  : "border-slate-200"
+              }`}
+            >
+              {/* Thumbnail */}
+              <div className="relative h-28 bg-slate-50 flex items-center justify-center overflow-hidden">
+                {filled && slide.image ? (
+                  <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
+                ) : filled ? (
+                  <span className="text-4xl">{slide.emoji}</span>
+                ) : (
+                  <span className="text-slate-300 text-3xl">🖼️</span>
+                )}
+                {/* Slot number badge */}
+                <span
+                  className={`absolute top-2 left-2 w-6 h-6 rounded-md flex items-center justify-center text-xs font-black ${
+                    isOpen ? "bg-[#D32F2F] text-white" : "bg-white/90 text-slate-600 border border-slate-200"
+                  }`}
+                >
                   {idx + 1}
-                </div>
+                </span>
+                {/* Clear button */}
+                {filled && (
+                  <button
+                    type="button"
+                    onClick={() => clear(idx)}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/90 border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center text-sm transition-colors"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
 
-                {/* Thumbnail */}
+              {/* Info + actions */}
+              <div className="p-2.5 space-y-2">
                 {filled ? (
-                  slide.image ? (
-                    <img src={slide.image} alt={slide.title}
-                      className="w-10 h-10 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-xl flex-shrink-0">
-                      {slide.emoji}
-                    </div>
-                  )
-                ) : null}
+                  <>
+                    <p className="text-xs font-semibold text-slate-800 truncate">{slide.title}</p>
+                    <p className="text-[10px] text-slate-400 truncate">{slide.href}</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-400">{isOpen ? "Сонгоно уу..." : "Хоосон"}</p>
+                )}
 
-                {/* Name / placeholder */}
-                <div className="flex-1 min-w-0">
-                  {filled ? (
-                    <>
-                      <p className="text-sm font-semibold text-slate-800 truncate">{slide.title}</p>
-                      <p className="text-xs text-slate-400 truncate">{slide.href}</p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-slate-400">{isOpen ? "Ангилал сонгоно уу..." : "Ангилал сонгох"}</p>
-                  )}
-                </div>
-
-                {/* Action buttons */}
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  {/* Change category */}
-                  <button type="button" onClick={() => { setActive(isOpen ? null : idx); setCustomImgOpen(null); }}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                <div className="flex gap-1.5">
+                  {/* Change/Select category */}
+                  <button
+                    type="button"
+                    onClick={() => { setActive(isOpen ? null : idx); setCustomImgOpen(null); }}
+                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${
                       isOpen
                         ? "bg-[#D32F2F] text-white border-[#D32F2F]"
                         : "bg-white text-slate-600 border-slate-200 hover:border-[#D32F2F] hover:text-[#D32F2F]"
-                    }`}>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    }`}
+                  >
                     {filled ? "Солих" : "Сонгох"}
                   </button>
 
-                  {/* Custom image override — only when filled */}
+                  {/* Custom image — only when filled */}
                   {filled && (
-                    <button type="button"
+                    <button
+                      type="button"
                       onClick={() => { setCustomImgOpen(isImgOpen ? null : idx); setActive(null); }}
-                      title="Өөр зураг ашиглах (optional)"
-                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                      title="Өөр зураг ашиглах"
+                      className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${
                         isImgOpen
                           ? "bg-slate-700 text-white border-slate-700"
                           : slide._customImage
                           ? "bg-emerald-50 text-emerald-600 border-emerald-300"
                           : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
-                      }`}>
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01"/></svg>
-                      Зураг
-                    </button>
-                  )}
-
-                  {/* Clear */}
-                  {filled && (
-                    <button type="button" onClick={() => clear(idx)}
-                      className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 flex items-center justify-center text-sm transition-colors">
-                      ×
+                      }`}
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01" />
+                      </svg>
                     </button>
                   )}
                 </div>
               </div>
-
-              {/* ── Category picker panel ──────────────────────── */}
-              {isOpen && (
-                <div className="border-t border-slate-100 p-3 bg-slate-50">
-                  <CategoryPicker cats={cats} onPick={(cat) => pick(idx, cat)} />
-                </div>
-              )}
-
-              {/* ── Custom image override panel ────────────────── */}
-              {isImgOpen && filled && (
-                <div className="border-t border-slate-100 p-3 bg-slate-50 space-y-2">
-                  <p className="text-xs font-semibold text-slate-600">
-                    Тусгай зураг (заавал биш) — ангилалын үндсэн зургийн оронд
-                  </p>
-                  <div className="flex gap-2 items-center">
-                    {slide.image && (
-                      <img src={slide.image} alt="preview"
-                        className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0" />
-                    )}
-                    <input
-                      type="text"
-                      value={slide._customImage ?? slide.image ?? ""}
-                      onChange={(e) => setCustomImage(idx, e.target.value)}
-                      placeholder="https://... зургийн URL"
-                      className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-                    />
-                    <label className={`cursor-pointer shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
-                      uploading
-                        ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
-                    }`}>
-                      {uploading ? (
-                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                        </svg>
-                      ) : (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      )}
-                      {uploading ? "..." : "Оруулах"}
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        disabled={uploading}
-                        onChange={(e) => handleFileUpload(e, idx)}
-                      />
-                    </label>
-                  </div>
-                  {slide._customImage && (
-                    <button type="button" onClick={() => clearCustomImage(idx)}
-                      className="text-xs text-slate-400 hover:text-red-500 transition-colors">
-                      ↩ Ангилалын үндсэн зураг руу буцах
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
           );
         })}
       </div>
+
+      {/* ── Category picker panel (shown below row when a slot is active) ── */}
+      {active !== null && (
+        <div className="border border-slate-100 rounded-xl p-3 bg-slate-50 space-y-1.5">
+          <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded-md bg-[#D32F2F] text-white text-[10px] font-black flex items-center justify-center">{active + 1}</span>
+            дугаарт ангилал сонгох
+          </p>
+          <CategoryPicker cats={cats} onPick={(cat) => pick(active, cat)} />
+        </div>
+      )}
+
+      {/* ── Custom image panel ──────────────────────────────────────────── */}
+      {customImgOpen !== null && slides[customImgOpen]?.title && (
+        <div className="border border-slate-100 rounded-xl p-3 bg-slate-50 space-y-2">
+          <p className="text-xs font-semibold text-slate-600">
+            Тусгай зураг (заавал биш) — ангилалын үндсэн зургийн оронд
+          </p>
+          <div className="flex gap-2 items-center">
+            {slides[customImgOpen].image && (
+              <img
+                src={slides[customImgOpen].image}
+                alt="preview"
+                className="w-12 h-12 rounded-lg object-cover border border-slate-200 shrink-0"
+              />
+            )}
+            <input
+              type="text"
+              value={slides[customImgOpen]._customImage ?? slides[customImgOpen].image ?? ""}
+              onChange={(e) => setCustomImage(customImgOpen, e.target.value)}
+              placeholder="https://... зургийн URL"
+              className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+            />
+            <label
+              className={`cursor-pointer shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                uploading
+                  ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+              }`}
+            >
+              {uploading ? (
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              )}
+              {uploading ? "..." : "Оруулах"}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={uploading}
+                onChange={(e) => handleFileUpload(e, customImgOpen)}
+              />
+            </label>
+          </div>
+          {slides[customImgOpen]._customImage && (
+            <button
+              type="button"
+              onClick={() => clearCustomImage(customImgOpen)}
+              className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+            >
+              ↩ Ангилалын үндсэн зураг руу буцах
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ─── Bento tab ────────────────────────────────────────────────────────────────
 

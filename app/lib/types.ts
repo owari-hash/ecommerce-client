@@ -168,6 +168,9 @@ export type StoreSettings = {
   bannerSlidesSmall: BannerSlide[];
   bentoTiles: BentoTile[];
   bentoTitle: string;
+  bentoType: string;
+  bentoBannerImage: string;
+  bentoBannerLink: string;
   contactEmail: string;
   contactPhone: string;
   address: string;

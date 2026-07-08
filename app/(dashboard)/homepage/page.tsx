@@ -463,14 +463,26 @@ function BentoCell({ idx, tile, selected, onClick }: CellProps) {
 function BentoTab({
   tiles,
   bentoTitle,
+  bentoType,
+  bentoBannerImage,
+  bentoBannerLink,
   onChange,
   onTitleChange,
+  onBentoTypeChange,
+  onBentoBannerImageChange,
+  onBentoBannerLinkChange,
   cats,
 }: {
   tiles: BentoTile[];
   bentoTitle: string;
+  bentoType: string;
+  bentoBannerImage: string;
+  bentoBannerLink: string;
   onChange: (next: BentoTile[]) => void;
   onTitleChange: (v: string) => void;
+  onBentoTypeChange: (v: string) => void;
+  onBentoBannerImageChange: (v: string) => void;
+  onBentoBannerLinkChange: (v: string) => void;
   cats: Cat[];
 }) {
   const [active, setActive] = useState<number | null>(null);
@@ -486,6 +498,19 @@ function BentoTab({
       const url = await uploadImage(file);
       const next = tiles.map((t, i) => (i === active ? { ...t, image: url } : t));
       onChange(next);
+    } catch { /* ignore */ } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      onBentoBannerImageChange(url);
     } catch { /* ignore */ } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -522,144 +547,211 @@ function BentoTab({
           <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
           </svg>
-          Хэсэгчилсэн ангилал — 9 цонх
+          Хэсэгчилсэн ангилал ба Баннер
         </h3>
         <p className="text-xs text-slate-400 mt-0.5">
-          Тоо дарж ангилал сонгоно уу. 9 цонх бүгд бөглөгдсөн үед харагдана.
+          Энэ хэсэгт Bento ангилал эсвэл сурталчилгааны баннер харуулахыг тохируулна.
         </p>
       </div>
 
-      {/* Section title input */}
-      <div>
-        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Хэсгийн гарчиг</label>
-        <input
-          type="text"
-          value={bentoTitle}
-          onChange={(e) => onTitleChange(e.target.value)}
-          placeholder="🛒 Хүнсний ангилал"
-          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-        />
-        <p className="text-xs text-slate-400 mt-1">Хоосон үлдвэл "🛒 Хүнсний ангилал" харагдана.</p>
-      </div>
-
-      {/* Interactive bento layout grid */}
-      <div>
-        <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-          Байрлал сонгох (дарж ангилал оноох)
-        </p>
-
-        {/* Visual bento layout — mirrors the actual storefront layout */}
-        <div className="flex gap-2">
-          {/* Left column */}
-          <div className="flex-1 space-y-2">
-            {/* Position 0 — full */}
-            <div className="relative" style={{ minHeight: 80 }}>
-              <BentoCell idx={0} tile={tiles[0]} selected={active === 0} onClick={() => toggle(0)} />
-              {!!tiles[0].label && (
-                <button
-                  type="button"
-                  onClick={() => clear(0)}
-                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center"
-                >×</button>
-              )}
-            </div>
-            {/* Positions 1 + 2 — pair */}
-            <div className="flex gap-2" style={{ minHeight: 80 }}>
-              {[1, 2].map((i) => (
-                <div key={i} className="flex-1 relative">
-                  <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
-                  {!!tiles[i].label && (
-                    <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-                  )}
-                </div>
-              ))}
-            </div>
-            {/* Position 3 — full */}
-            <div className="relative" style={{ minHeight: 80 }}>
-              <BentoCell idx={3} tile={tiles[3]} selected={active === 3} onClick={() => toggle(3)} />
-              {!!tiles[3].label && (
-                <button type="button" onClick={() => clear(3)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-              )}
-            </div>
-          </div>
-
-          {/* Right column */}
-          <div className="flex-1 space-y-2">
-            {/* Positions 4 + 5 — pair */}
-            <div className="flex gap-2" style={{ minHeight: 80 }}>
-              {[4, 5].map((i) => (
-                <div key={i} className="flex-1 relative">
-                  <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
-                  {!!tiles[i].label && (
-                    <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-                  )}
-                </div>
-              ))}
-            </div>
-            {/* Position 6 — full */}
-            <div className="relative" style={{ minHeight: 80 }}>
-              <BentoCell idx={6} tile={tiles[6]} selected={active === 6} onClick={() => toggle(6)} />
-              {!!tiles[6].label && (
-                <button type="button" onClick={() => clear(6)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-              )}
-            </div>
-            {/* Positions 7 + 8 — pair */}
-            <div className="flex gap-2" style={{ minHeight: 80 }}>
-              {[7, 8].map((i) => (
-                <div key={i} className="flex-1 relative">
-                  <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
-                  {!!tiles[i].label && (
-                    <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* Control Type */}
+      <div className="space-y-2 border-b border-slate-100 pb-4">
+        <label className="block text-sm font-semibold text-slate-700">Хэсгийн төрөл</label>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="radio" name="bentoType" value="category" checked={bentoType === "category"} onChange={() => onBentoTypeChange("category")} className="text-[#D32F2F] focus:ring-[#D32F2F]/30" />
+            <span>Ангиллын Bento сүлжээ</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="radio" name="bentoType" value="banner" checked={bentoType === "banner"} onChange={() => onBentoTypeChange("banner")} className="text-[#D32F2F] focus:ring-[#D32F2F]/30" />
+            <span>Сурталчилгааны баннер</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="radio" name="bentoType" value="hide" checked={bentoType === "hide"} onChange={() => onBentoTypeChange("hide")} className="text-[#D32F2F] focus:ring-[#D32F2F]/30" />
+            <span>Нуух</span>
+          </label>
         </div>
       </div>
 
-      {/* Category picker + image upload — shows below grid when a cell is active */}
-      {active !== null && (
-        <div className="space-y-3">
-          <p className="text-sm font-semibold text-slate-600">
-            <span className="inline-flex items-center gap-1">
-              <span className="w-6 h-6 rounded-md bg-[#D32F2F] text-white text-xs font-black flex items-center justify-center">{active + 1}</span>
-              байрлалд ангилал сонгох
-            </span>
-          </p>
-          <CategoryPicker cats={cats} onPick={pick} />
-          {/* Image upload for already-filled tile */}
-          {tiles[active]?.label && (
-            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              {tiles[active].image ? (
-                <img src={tiles[active].image} alt={tiles[active].label} className="w-12 h-12 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
-              ) : (
-                <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 text-2xl">📁</div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-slate-700 truncate">{tiles[active].label}</p>
-                <p className="text-[10px] text-slate-400">{tiles[active].image ? "Зураг оруулсан" : "Зураг байхгүй"}</p>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-                  uploading ? "bg-slate-100 text-slate-400" : "bg-[#D32F2F] hover:bg-red-700 text-white"
-                }`}>
-                  {uploading ? (
-                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                  ) : (
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+      {bentoType === "category" && (
+        <>
+          {/* Section title input */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Хэсгийн гарчиг</label>
+            <input
+              type="text"
+              value={bentoTitle}
+              onChange={(e) => onTitleChange(e.target.value)}
+              placeholder="🛒 Хүнсний ангилал"
+              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+            />
+            <p className="text-xs text-slate-400 mt-1">Хоосон үлдвэл "🛒 Хүнсний ангилал" харагдана.</p>
+          </div>
+
+          {/* Interactive bento layout grid */}
+          <div>
+            <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
+              Байрлал сонгох (дарж ангилал оноох)
+            </p>
+
+            {/* Visual bento layout — mirrors the actual storefront layout */}
+            <div className="flex gap-2">
+              {/* Left column */}
+              <div className="flex-1 space-y-2">
+                {/* Position 0 — full */}
+                <div className="relative" style={{ minHeight: 80 }}>
+                  <BentoCell idx={0} tile={tiles[0]} selected={active === 0} onClick={() => toggle(0)} />
+                  {!!tiles[0].label && (
+                    <button
+                      type="button"
+                      onClick={() => clear(0)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center"
+                    >×</button>
                   )}
-                  {uploading ? "..." : "Зураг оруулах"}
-                  <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={handleTileImageUpload} />
-                </label>
-                {tiles[active].image && (
-                  <button type="button" onClick={clearTileImage} className="px-2 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 transition-colors">
-                    ✕
-                  </button>
-                )}
+                </div>
+                {/* Positions 1 + 2 — pair */}
+                <div className="flex gap-2" style={{ minHeight: 80 }}>
+                  {[1, 2].map((i) => (
+                    <div key={i} className="flex-1 relative">
+                      <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
+                      {!!tiles[i].label && (
+                        <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {/* Position 3 — full */}
+                <div className="relative" style={{ minHeight: 80 }}>
+                  <BentoCell idx={3} tile={tiles[3]} selected={active === 3} onClick={() => toggle(3)} />
+                  {!!tiles[3].label && (
+                    <button type="button" onClick={() => clear(3)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Right column */}
+              <div className="flex-1 space-y-2">
+                {/* Positions 4 + 5 — pair */}
+                <div className="flex gap-2" style={{ minHeight: 80 }}>
+                  {[4, 5].map((i) => (
+                    <div key={i} className="flex-1 relative">
+                      <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
+                      {!!tiles[i].label && (
+                        <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {/* Position 6 — full */}
+                <div className="relative" style={{ minHeight: 80 }}>
+                  <BentoCell idx={6} tile={tiles[6]} selected={active === 6} onClick={() => toggle(6)} />
+                  {!!tiles[6].label && (
+                    <button type="button" onClick={() => clear(6)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
+                  )}
+                </div>
+                {/* Positions 7 + 8 — pair */}
+                <div className="flex gap-2" style={{ minHeight: 80 }}>
+                  {[7, 8].map((i) => (
+                    <div key={i} className="flex-1 relative">
+                      <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
+                      {!!tiles[i].label && (
+                        <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
+          </div>
+
+          {/* Category picker + image upload — shows below grid when a cell is active */}
+          {active !== null && (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-slate-600">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-6 h-6 rounded-md bg-[#D32F2F] text-white text-xs font-black flex items-center justify-center">{active + 1}</span>
+                  байрлалд ангилал сонгох
+                </span>
+              </p>
+              <CategoryPicker cats={cats} onPick={pick} />
+              {/* Image upload for already-filled tile */}
+              {tiles[active]?.label && (
+                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  {tiles[active].image ? (
+                    <img src={tiles[active].image} alt={tiles[active].label} className="w-12 h-12 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 text-2xl">📁</div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-700 truncate">{tiles[active].label}</p>
+                    <p className="text-[10px] text-slate-400">{tiles[active].image ? "Зураг оруулсан" : "Зураг байхгүй"}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                      uploading ? "bg-slate-100 text-slate-400" : "bg-[#D32F2F] hover:bg-red-700 text-white"
+                    }`}>
+                      {uploading ? (
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      )}
+                      {uploading ? "..." : "Зураг оруулах"}
+                      <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={handleTileImageUpload} />
+                    </label>
+                    {tiles[active].image && (
+                      <button type="button" onClick={clearTileImage} className="px-2 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 transition-colors">
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
+        </>
+      )}
+
+      {bentoType === "banner" && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Баннер зураг</label>
+            <div className="flex gap-3 items-center">
+              {bentoBannerImage ? (
+                <img src={bentoBannerImage} alt="Bento Banner" className="w-24 h-12 rounded-lg object-cover border border-slate-200 shrink-0" />
+              ) : (
+                <div className="w-24 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-xs text-slate-400">Зураггүй</div>
+              )}
+              <input
+                type="text"
+                value={bentoBannerImage}
+                onChange={(e) => onBentoBannerImageChange(e.target.value)}
+                placeholder="https://... зургийн URL"
+                className="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+              />
+              <label className={`cursor-pointer shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                uploading ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+              }`}>
+                {uploading ? "..." : "Оруулах"}
+                <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={handleBannerUpload} />
+              </label>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Холбоос URL</label>
+            <input
+              type="text"
+              value={bentoBannerLink}
+              onChange={(e) => onBentoBannerLinkChange(e.target.value)}
+              placeholder="Жишээ: /category-slug эсвэл /product-slug"
+              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+            />
+          </div>
+        </div>
+      )}
+
+      {bentoType === "hide" && (
+        <div className="border border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-400 text-sm">
+          🫥 Энэ хэсэг одоогоор нүүр хуудаснаас нуугдсан байна.
         </div>
       )}
     </div>
@@ -677,6 +769,10 @@ export default function HomepagePage() {
   const [smallSlides, setSmallSlides] = useState<BannerSlide[]>(() => ensure3(settings.bannerSlidesSmall));
   const [tiles,       setTiles]       = useState<BentoTile[]>(  () => ensure9(settings.bentoTiles));
   const [bentoTitle,  setBentoTitle]  = useState(settings.bentoTitle ?? "");
+  const [bentoType,   setBentoType]   = useState(settings.bentoType ?? "category");
+  const [bentoBannerImage, setBentoBannerImage] = useState(settings.bentoBannerImage ?? "");
+  const [bentoBannerLink,  setBentoBannerLink]  = useState(settings.bentoBannerLink ?? "");
+  
   const [activeTab,   setActiveTab]   = useState<Tab>("big");
   const [saved,       setSaved]       = useState(false);
   const [saving,      setSaving]      = useState(false);
@@ -686,11 +782,30 @@ export default function HomepagePage() {
     setSmallSlides(ensure3(settings.bannerSlidesSmall));
     setTiles(ensure9(settings.bentoTiles));
     setBentoTitle(settings.bentoTitle ?? "");
-  }, [settings.bannerSlidesBig, settings.bannerSlidesSmall, settings.bentoTiles, settings.bentoTitle]);
+    setBentoType(settings.bentoType ?? "category");
+    setBentoBannerImage(settings.bentoBannerImage ?? "");
+    setBentoBannerLink(settings.bentoBannerLink ?? "");
+  }, [
+    settings.bannerSlidesBig,
+    settings.bannerSlidesSmall,
+    settings.bentoTiles,
+    settings.bentoTitle,
+    settings.bentoType,
+    settings.bentoBannerImage,
+    settings.bentoBannerLink,
+  ]);
 
   async function handleSave() {
     setSaving(true);
-    await updateSettings({ bannerSlidesBig: bigSlides, bannerSlidesSmall: smallSlides, bentoTiles: tiles, bentoTitle });
+    await updateSettings({
+      bannerSlidesBig: bigSlides,
+      bannerSlidesSmall: smallSlides,
+      bentoTiles: tiles,
+      bentoTitle,
+      bentoType,
+      bentoBannerImage,
+      bentoBannerLink,
+    });
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -699,7 +814,7 @@ export default function HomepagePage() {
   const tabs: { id: Tab; label: string }[] = [
     { id: "big",   label: "Том баннер" },
     { id: "small", label: "Жижиг баннер" },
-    { id: "bento", label: "Хэсэгчилсэн ангилал" },
+    { id: "bento", label: "Хэсэгчилсэн ангилал ба Баннер" },
   ];
 
   // Show all active categories in picker
@@ -754,8 +869,14 @@ export default function HomepagePage() {
         <BentoTab
           tiles={tiles}
           bentoTitle={bentoTitle}
+          bentoType={bentoType}
+          bentoBannerImage={bentoBannerImage}
+          bentoBannerLink={bentoBannerLink}
           onChange={(next) => { setTiles(next); setSaved(false); }}
           onTitleChange={(v) => { setBentoTitle(v); setSaved(false); }}
+          onBentoTypeChange={(v) => { setBentoType(v); setSaved(false); }}
+          onBentoBannerImageChange={(v) => { setBentoBannerImage(v); setSaved(false); }}
+          onBentoBannerLinkChange={(v) => { setBentoBannerLink(v); setSaved(false); }}
           cats={activeCats}
         />
       )}

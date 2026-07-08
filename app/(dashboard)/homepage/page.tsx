@@ -460,29 +460,17 @@ function BentoCell({ idx, tile, selected, onClick }: CellProps) {
   );
 }
 
-function BentoTab({
+function BentoSectionEditor({
   tiles,
   bentoTitle,
-  bentoType,
-  bentoBannerImage,
-  bentoBannerLink,
   onChange,
   onTitleChange,
-  onBentoTypeChange,
-  onBentoBannerImageChange,
-  onBentoBannerLinkChange,
   cats,
 }: {
   tiles: BentoTile[];
   bentoTitle: string;
-  bentoType: string;
-  bentoBannerImage: string;
-  bentoBannerLink: string;
   onChange: (next: BentoTile[]) => void;
   onTitleChange: (v: string) => void;
-  onBentoTypeChange: (v: string) => void;
-  onBentoBannerImageChange: (v: string) => void;
-  onBentoBannerLinkChange: (v: string) => void;
   cats: Cat[];
 }) {
   const [active, setActive] = useState<number | null>(null);
@@ -498,19 +486,6 @@ function BentoTab({
       const url = await uploadImage(file);
       const next = tiles.map((t, i) => (i === active ? { ...t, image: url } : t));
       onChange(next);
-    } catch { /* ignore */ } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
-
-  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadImage(file);
-      onBentoBannerImageChange(url);
     } catch { /* ignore */ } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -543,217 +518,187 @@ function BentoTab({
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
       <div>
-        <h3 className="font-bold text-slate-800 flex items-center gap-2">
-          <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-          </svg>
-          Хэсэгчилсэн ангилал ба Баннер
-        </h3>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Энэ хэсэгт Bento ангилал эсвэл сурталчилгааны баннер харуулахыг тохируулна.
+        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Хэсгийн гарчиг</label>
+        <input
+          type="text"
+          value={bentoTitle}
+          onChange={(e) => onTitleChange(e.target.value)}
+          placeholder="🛒 Хүнсний ангилал"
+          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+        />
+        <p className="text-xs text-slate-400 mt-1">Хоосон үлдвэл "🛒 Хүнсний ангилал" харагдана.</p>
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
+          Байрлал сонгох (дарж ангилал оноох)
         </p>
-      </div>
 
-      {/* Control Type */}
-      <div className="space-y-2 border-b border-slate-100 pb-4">
-        <label className="block text-sm font-semibold text-slate-700">Хэсгийн төрөл</label>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-            <input type="radio" name="bentoType" value="category" checked={bentoType === "category"} onChange={() => onBentoTypeChange("category")} className="text-[#D32F2F] focus:ring-[#D32F2F]/30" />
-            <span>Ангиллын Bento сүлжээ</span>
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-            <input type="radio" name="bentoType" value="banner" checked={bentoType === "banner"} onChange={() => onBentoTypeChange("banner")} className="text-[#D32F2F] focus:ring-[#D32F2F]/30" />
-            <span>Сурталчилгааны баннер</span>
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-            <input type="radio" name="bentoType" value="hide" checked={bentoType === "hide"} onChange={() => onBentoTypeChange("hide")} className="text-[#D32F2F] focus:ring-[#D32F2F]/30" />
-            <span>Нуух</span>
-          </label>
-        </div>
-      </div>
-
-      {bentoType === "category" && (
-        <>
-          {/* Section title input */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Хэсгийн гарчиг</label>
-            <input
-              type="text"
-              value={bentoTitle}
-              onChange={(e) => onTitleChange(e.target.value)}
-              placeholder="🛒 Хүнсний ангилал"
-              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-            />
-            <p className="text-xs text-slate-400 mt-1">Хоосон үлдвэл "🛒 Хүнсний ангилал" харагдана.</p>
-          </div>
-
-          {/* Interactive bento layout grid */}
-          <div>
-            <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
-              Байрлал сонгох (дарж ангилал оноох)
-            </p>
-
-            {/* Visual bento layout — mirrors the actual storefront layout */}
-            <div className="flex gap-2">
-              {/* Left column */}
-              <div className="flex-1 space-y-2">
-                {/* Position 0 — full */}
-                <div className="relative" style={{ minHeight: 80 }}>
-                  <BentoCell idx={0} tile={tiles[0]} selected={active === 0} onClick={() => toggle(0)} />
-                  {!!tiles[0].label && (
-                    <button
-                      type="button"
-                      onClick={() => clear(0)}
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center"
-                    >×</button>
+        <div className="flex gap-2">
+          <div className="flex-1 space-y-2">
+            <div className="relative" style={{ minHeight: 80 }}>
+              <BentoCell idx={0} tile={tiles[0]} selected={active === 0} onClick={() => toggle(0)} />
+              {!!tiles[0].label && (
+                <button type="button" onClick={() => clear(0)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
+              )}
+            </div>
+            <div className="flex gap-2" style={{ minHeight: 80 }}>
+              {[1, 2].map((i) => (
+                <div key={i} className="flex-1 relative">
+                  <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
+                  {!!tiles[i].label && (
+                    <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
                   )}
                 </div>
-                {/* Positions 1 + 2 — pair */}
-                <div className="flex gap-2" style={{ minHeight: 80 }}>
-                  {[1, 2].map((i) => (
-                    <div key={i} className="flex-1 relative">
-                      <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
-                      {!!tiles[i].label && (
-                        <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {/* Position 3 — full */}
-                <div className="relative" style={{ minHeight: 80 }}>
-                  <BentoCell idx={3} tile={tiles[3]} selected={active === 3} onClick={() => toggle(3)} />
-                  {!!tiles[3].label && (
-                    <button type="button" onClick={() => clear(3)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-                  )}
-                </div>
-              </div>
-
-              {/* Right column */}
-              <div className="flex-1 space-y-2">
-                {/* Positions 4 + 5 — pair */}
-                <div className="flex gap-2" style={{ minHeight: 80 }}>
-                  {[4, 5].map((i) => (
-                    <div key={i} className="flex-1 relative">
-                      <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
-                      {!!tiles[i].label && (
-                        <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                {/* Position 6 — full */}
-                <div className="relative" style={{ minHeight: 80 }}>
-                  <BentoCell idx={6} tile={tiles[6]} selected={active === 6} onClick={() => toggle(6)} />
-                  {!!tiles[6].label && (
-                    <button type="button" onClick={() => clear(6)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-                  )}
-                </div>
-                {/* Positions 7 + 8 — pair */}
-                <div className="flex gap-2" style={{ minHeight: 80 }}>
-                  {[7, 8].map((i) => (
-                    <div key={i} className="flex-1 relative">
-                      <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
-                      {!!tiles[i].label && (
-                        <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              ))}
+            </div>
+            <div className="relative" style={{ minHeight: 80 }}>
+              <BentoCell idx={3} tile={tiles[3]} selected={active === 3} onClick={() => toggle(3)} />
+              {!!tiles[3].label && (
+                <button type="button" onClick={() => clear(3)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
+              )}
             </div>
           </div>
 
-          {/* Category picker + image upload — shows below grid when a cell is active */}
-          {active !== null && (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-slate-600">
-                <span className="inline-flex items-center gap-1">
-                  <span className="w-6 h-6 rounded-md bg-[#D32F2F] text-white text-xs font-black flex items-center justify-center">{active + 1}</span>
-                  байрлалд ангилал сонгох
-                </span>
-              </p>
-              <CategoryPicker cats={cats} onPick={pick} />
-              {/* Image upload for already-filled tile */}
-              {tiles[active]?.label && (
-                <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                  {tiles[active].image ? (
-                    <img src={tiles[active].image} alt={tiles[active].label} className="w-12 h-12 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 text-2xl">📁</div>
+          <div className="flex-1 space-y-2">
+            <div className="flex gap-2" style={{ minHeight: 80 }}>
+              {[4, 5].map((i) => (
+                <div key={i} className="flex-1 relative">
+                  <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
+                  {!!tiles[i].label && (
+                    <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-slate-700 truncate">{tiles[active].label}</p>
-                    <p className="text-[10px] text-slate-400">{tiles[active].image ? "Зураг оруулсан" : "Зураг байхгүй"}</p>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-                      uploading ? "bg-slate-100 text-slate-400" : "bg-[#D32F2F] hover:bg-red-700 text-white"
-                    }`}>
-                      {uploading ? (
-                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                      ) : (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                      )}
-                      {uploading ? "..." : "Зураг оруулах"}
-                      <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={handleTileImageUpload} />
-                    </label>
-                    {tiles[active].image && (
-                      <button type="button" onClick={clearTileImage} className="px-2 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 transition-colors">
-                        ✕
-                      </button>
-                    )}
-                  </div>
                 </div>
+              ))}
+            </div>
+            <div className="relative" style={{ minHeight: 80 }}>
+              <BentoCell idx={6} tile={tiles[6]} selected={active === 6} onClick={() => toggle(6)} />
+              {!!tiles[6].label && (
+                <button type="button" onClick={() => clear(6)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
               )}
+            </div>
+            <div className="flex gap-2" style={{ minHeight: 80 }}>
+              {[7, 8].map((i) => (
+                <div key={i} className="flex-1 relative">
+                  <BentoCell idx={i} tile={tiles[i]} selected={active === i} onClick={() => toggle(i)} />
+                  {!!tiles[i].label && (
+                    <button type="button" onClick={() => clear(i)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-500 text-xs flex items-center justify-center">×</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {active !== null && (
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-slate-600">
+            <span className="inline-flex items-center gap-1">
+              <span className="w-6 h-6 rounded-md bg-[#D32F2F] text-white text-xs font-black flex items-center justify-center">{active + 1}</span>
+              байрлалд ангилал сонгох
+            </span>
+          </p>
+          <CategoryPicker cats={cats} onPick={pick} />
+          {tiles[active]?.label && (
+            <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              {tiles[active].image ? (
+                <img src={tiles[active].image} alt={tiles[active].label} className="w-12 h-12 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 text-2xl">📁</div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-slate-700 truncate">{tiles[active].label}</p>
+                <p className="text-[10px] text-slate-400">{tiles[active].image ? "Зураг оруулсан" : "Зураг байхгүй"}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                  uploading ? "bg-slate-100 text-slate-400" : "bg-[#D32F2F] hover:bg-red-700 text-white"
+                }`}>
+                  {uploading ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  )}
+                  {uploading ? "..." : "Зураг оруулах"}
+                  <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={handleTileImageUpload} />
+                </label>
+                {tiles[active].image && (
+                  <button type="button" onClick={clearTileImage} className="px-2 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 border border-slate-200 transition-colors">
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
           )}
-        </>
-      )}
-
-      {bentoType === "banner" && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Баннер зураг</label>
-            <div className="flex gap-3 items-center">
-              {bentoBannerImage ? (
-                <img src={bentoBannerImage} alt="Bento Banner" className="w-24 h-12 rounded-lg object-cover border border-slate-200 shrink-0" />
-              ) : (
-                <div className="w-24 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-xs text-slate-400">Зураггүй</div>
-              )}
-              <input
-                type="text"
-                value={bentoBannerImage}
-                onChange={(e) => onBentoBannerImageChange(e.target.value)}
-                placeholder="https://... зургийн URL"
-                className="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
-              />
-              <label className={`cursor-pointer shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                uploading ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
-              }`}>
-                {uploading ? "..." : "Оруулах"}
-                <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={handleBannerUpload} />
-              </label>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Холбоос URL</label>
-            <input
-              type="text"
-              value={bentoBannerLink}
-              onChange={(e) => onBentoBannerLinkChange(e.target.value)}
-              placeholder="Жишээ: /category-slug эсвэл /product-slug"
-              className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
-            />
-          </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {bentoType === "hide" && (
-        <div className="border border-dashed border-slate-200 rounded-2xl p-8 text-center text-slate-400 text-sm">
-          🫥 Энэ хэсэг одоогоор нүүр хуудаснаас нуугдсан байна.
+function BannerSectionEditor({
+  image,
+  link,
+  onImageChange,
+  onLinkChange,
+}: {
+  image: string;
+  link: string;
+  onImageChange: (v: string) => void;
+  onLinkChange: (v: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      onImageChange(url);
+    } catch { /* ignore */ } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Баннер зураг</label>
+        <div className="flex gap-3 items-center">
+          {image ? (
+            <img src={image} alt="Promo Banner" className="w-24 h-12 rounded-lg object-cover border border-slate-200 shrink-0" />
+          ) : (
+            <div className="w-24 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 text-xs text-slate-400">Зураггүй</div>
+          )}
+          <input
+            type="text"
+            value={image}
+            onChange={(e) => onImageChange(e.target.value)}
+            placeholder="https://... зургийн URL"
+            className="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30 bg-white"
+          />
+          <label className={`cursor-pointer shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+            uploading ? "bg-slate-100 text-slate-400" : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+          }`}>
+            {uploading ? "..." : "Оруулах"}
+            <input ref={fileInputRef} type="file" accept="image/*" className="sr-only" disabled={uploading} onChange={handleBannerUpload} />
+          </label>
         </div>
-      )}
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-slate-700 mb-1.5">Холбоос URL</label>
+        <input
+          type="text"
+          value={link}
+          onChange={(e) => onLinkChange(e.target.value)}
+          placeholder="Жишээ: /category-slug эсвэл /product-slug"
+          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#D32F2F]/30"
+        />
+      </div>
     </div>
   );
 }
@@ -772,7 +717,8 @@ export default function HomepagePage() {
   const [bentoType,   setBentoType]   = useState(settings.bentoType ?? "category");
   const [bentoBannerImage, setBentoBannerImage] = useState(settings.bentoBannerImage ?? "");
   const [bentoBannerLink,  setBentoBannerLink]  = useState(settings.bentoBannerLink ?? "");
-  const [layout,      setLayout]      = useState<string[]>([]);
+  const [layout,      setLayout]      = useState<any[]>([]);
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   
   const [activeTab,   setActiveTab]   = useState<Tab>("big");
   const [saved,       setSaved]       = useState(false);
@@ -798,24 +744,57 @@ export default function HomepagePage() {
       : [];
 
     if (initialLayout.length === 0) {
-      initialLayout = [...rootCatIds, "bento", "banner"];
-    } else {
-      // Clean up layout: only keep active categories that still exist + bento + banner
-      initialLayout = initialLayout.filter(id => {
-        if (id === "bento" || id === "banner") return true;
-        return categories.some(c => c.id === id);
-      });
-      // Append any missing active root categories
-      rootCatIds.forEach(id => {
-        if (!initialLayout.includes(id)) {
-          initialLayout.push(id);
-        }
-      });
-      // Ensure bento and banner are present
-      if (!initialLayout.includes("bento")) initialLayout.push("bento");
-      if (!initialLayout.includes("banner")) initialLayout.push("banner");
+      initialLayout = [
+        ...rootCatIds.map(id => ({ id, type: "category", categoryId: id })),
+        { id: "bento-default", type: "bento", bentoTitle: settings.bentoTitle ?? "", bentoTiles: ensure9(settings.bentoTiles) },
+        { id: "banner-default", type: "banner", bentoBannerImage: settings.bentoBannerImage ?? "", bentoBannerLink: settings.bentoBannerLink ?? "" }
+      ];
     }
-    setLayout(initialLayout);
+
+    // Convert legacy formats
+    let processedLayout = initialLayout.map(item => {
+      if (typeof item === "string") {
+        if (item === "bento") {
+          return {
+            id: "bento-default",
+            type: "bento",
+            bentoTitle: settings.bentoTitle ?? "",
+            bentoTiles: ensure9(settings.bentoTiles)
+          };
+        } else if (item === "banner") {
+          return {
+            id: "banner-default",
+            type: "banner",
+            bentoBannerImage: settings.bentoBannerImage ?? "",
+            bentoBannerLink: settings.bentoBannerLink ?? ""
+          };
+        } else {
+          return {
+            id: item,
+            type: "category",
+            categoryId: item
+          };
+        }
+      }
+      return item;
+    });
+
+    // Append missing categories
+    rootCatIds.forEach(id => {
+      const exists = processedLayout.some(x => x.type === "category" && (x.categoryId === id || x.id === id));
+      if (!exists) {
+        processedLayout.push({ id, type: "category", categoryId: id });
+      }
+    });
+
+    // Filter out deleted categories
+    processedLayout = processedLayout.filter(item => {
+      if (item.type === "bento" || item.type === "banner") return true;
+      const catId = item.categoryId || item.id;
+      return categories.some(c => c.id === catId);
+    });
+
+    setLayout(processedLayout);
   }, [
     settings.bannerSlidesBig,
     settings.bannerSlidesSmall,
@@ -843,8 +822,8 @@ export default function HomepagePage() {
 
     // Reorder categories sorting in DB
     const catOrder = layout
-      .filter(id => id !== "bento" && id !== "banner")
-      .map((id, index) => ({ id, sortOrder: index }));
+      .filter(x => x.type === "category")
+      .map((x, index) => ({ id: x.categoryId || x.id, sortOrder: index }));
     await reorderCategories(catOrder);
 
     setSaving(false);
@@ -862,32 +841,68 @@ export default function HomepagePage() {
   }
 
   function hideLayoutItem(id: string) {
-    const next = layout.filter(x => x !== id);
+    const next = layout.filter(x => x.id !== id);
     setLayout(next);
+    if (editingSectionId === id) setEditingSectionId(null);
     setSaved(false);
   }
 
-  function showLayoutItem(id: string) {
-    if (!layout.includes(id)) {
-      setLayout([...layout, id]);
+  function showLayoutItem(item: any) {
+    if (!layout.some(x => x.id === item.id)) {
+      setLayout([...layout, item]);
       setSaved(false);
     }
+  }
+
+  function addBentoSection() {
+    const newId = `bento-${Date.now()}`;
+    const newSection = {
+      id: newId,
+      type: "bento",
+      bentoTitle: "Хэсэгчилсэн ангилал (Bento)",
+      bentoTiles: ensure9([]),
+    };
+    setLayout([...layout, newSection]);
+    setEditingSectionId(newId);
+    setSaved(false);
+  }
+
+  function addBannerSection() {
+    const newId = `banner-${Date.now()}`;
+    const newSection = {
+      id: newId,
+      type: "banner",
+      bentoBannerImage: "",
+      bentoBannerLink: "",
+    };
+    setLayout([...layout, newSection]);
+    setEditingSectionId(newId);
+    setSaved(false);
+  }
+
+  function updateSectionData(id: string, patch: any) {
+    setLayout(prev => prev.map(s => {
+      if (s.id === id) {
+        return { ...s, ...patch };
+      }
+      return s;
+    }));
+    setSaved(false);
   }
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "big",   label: "Том баннер" },
     { id: "small", label: "Жижиг баннер" },
-    { id: "bento", label: "Хэсэгчилсэн ангилал ба Баннер" },
+    { id: "bento", label: "Нүүр хуудасны бүтэц" },
   ];
 
-  // Show all active categories in picker
   const activeCats = (categories as Cat[]).filter((c) => c.status === "active");
 
   return (
     <div className="space-y-5 max-w-3xl">
       <div>
         <h2 className="text-xl font-bold text-slate-800">Нүүр хуудас</h2>
-        <p className="text-sm text-slate-400 mt-0.5">Баннер слайдер болон ангилалын хэсгийг тохируулах</p>
+        <p className="text-sm text-slate-400 mt-0.5">Баннер карусель болон нүүр хуудасны хэсгүүдийн дараалал, агуулга тохируулах</p>
       </div>
 
       {/* Tab bar */}
@@ -896,7 +911,10 @@ export default function HomepagePage() {
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id);
+              if (tab.id !== "bento") setEditingSectionId(null);
+            }}
             className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === tab.id
                 ? "bg-white text-slate-800 shadow-sm"
@@ -929,176 +947,216 @@ export default function HomepagePage() {
       )}
 
       {activeTab === "bento" && (
-        <BentoTab
-          tiles={tiles}
-          bentoTitle={bentoTitle}
-          bentoType={bentoType}
-          bentoBannerImage={bentoBannerImage}
-          bentoBannerLink={bentoBannerLink}
-          onChange={(next) => { setTiles(next); setSaved(false); }}
-          onTitleChange={(v) => { setBentoTitle(v); setSaved(false); }}
-          onBentoTypeChange={(v) => { setBentoType(v); setSaved(false); }}
-          onBentoBannerImageChange={(v) => { setBentoBannerImage(v); setSaved(false); }}
-          onBentoBannerLinkChange={(v) => { setBentoBannerLink(v); setSaved(false); }}
-          cats={activeCats}
-        />
-      )}
-
-      {/* Homepage layout sequence manager */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-          <h3 className="font-bold text-slate-800 text-sm">Нүүр хуудасны хэсгүүдийн дараалал</h3>
-          <span className="text-xs text-slate-400 ml-1">— харагдах дараалал (дэлгүүрийн нүүр хуудас)</span>
-        </div>
-
-        {/* Visible items */}
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Харагдаж буй хэсгүүд ({layout.length})</p>
-          <div className="space-y-1.5">
-            {layout.map((id, idx) => {
-              let name = "";
-              let imgUrl = "";
-              let isCategory = false;
-              let isBento = false;
-              let isBanner = false;
-
-              if (id === "bento") {
-                name = settings.bentoTitle || "Хэсэгчилсэн ангилал (Bento сүлжээ)";
-                isBento = true;
-              } else if (id === "banner") {
-                name = "Сурталчилгааны баннер (Promo Banner)";
-                imgUrl = settings.bentoBannerImage;
-                isBanner = true;
-              } else {
-                const cat = categories.find(c => c.id === id);
-                name = cat?.name ?? "Ангилал";
-                const { url } = resolveCatImage(cat?.image);
-                imgUrl = url;
-                isCategory = true;
-              }
-
-              return (
-                <div key={id} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2.5 group hover:bg-slate-100 transition-colors">
-                  <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-slate-200 text-slate-500 text-xs font-bold shrink-0">{idx + 1}</span>
-                  {isCategory && (imgUrl ? (
-                    <img src={imgUrl} alt={name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
-                  ) : (
-                    <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0">📁</span>
-                  ))}
-                  {isBento && <span className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-sm shrink-0">🧩</span>}
-                  {isBanner && (imgUrl ? (
-                    <img src={imgUrl} alt={name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
-                  ) : (
-                    <span className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-sm shrink-0">🖼️</span>
-                  ))}
-                  <div className="flex-1 min-w-0">
-                    <span className="font-semibold text-slate-700 text-sm truncate block">{name}</span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {isCategory && "Бүтээгдэхүүнүүдийн мөр"}
-                      {isBento && "9 цонхот Bento сүлжээ"}
-                      {isBanner && "Сурталчилгааны баннер хэсэг"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* Hide Button */}
-                    <button
-                      type="button"
-                      onClick={() => hideLayoutItem(id)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-red-500 hover:text-red-500 transition-colors"
-                      title="Нуух"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </button>
-                    {/* Move Up */}
-                    <button
-                      type="button"
-                      onClick={() => moveLayoutItem(idx, -1)}
-                      disabled={idx === 0}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                      title="Дээш"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
-                      </svg>
-                    </button>
-                    {/* Move Down */}
-                    <button
-                      type="button"
-                      onClick={() => moveLayoutItem(idx, 1)}
-                      disabled={idx === layout.length - 1}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                      title="Доош"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+        <div className="space-y-5">
+          {/* Add Section Buttons */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={addBentoSection}
+              className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"
+            >
+              🧩 + Bento сүлжээ нэмэх
+            </button>
+            <button
+              type="button"
+              onClick={addBannerSection}
+              className="flex-1 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-xl text-sm font-bold transition-all shadow-sm active:scale-95"
+            >
+              🖼️ + Баннер нэмэх
+            </button>
           </div>
-        </div>
 
-        {/* Hidden items */}
-        {(() => {
-          const allPossibleIds = [...rootCategories.map(c => c.id), "bento", "banner"];
-          const hiddenIds = allPossibleIds.filter(id => !layout.includes(id));
-          if (hiddenIds.length === 0) return null;
+          {/* Sequence Manager */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
+            <div className="flex items-center gap-2 border-b border-slate-50 pb-3">
+              <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <h3 className="font-bold text-slate-800 text-sm">Хэсгүүдийн дараалал</h3>
+              <span className="text-xs text-slate-400 ml-1">— нүүр хуудас дээр харагдах дараалал</span>
+            </div>
 
-          return (
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Нуугдсан хэсгүүд ({hiddenIds.length})</p>
-              <div className="space-y-1.5">
-                {hiddenIds.map((id) => {
+            {/* Visible Items */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Харагдаж байгаа хэсгүүд ({layout.length})</p>
+              <div className="space-y-2">
+                {layout.map((item, idx) => {
                   let name = "";
-                  let isCategory = false;
-                  let isBento = false;
-                  let isBanner = false;
+                  let imgUrl = "";
+                  let isCategory = item.type === "category";
+                  let isBento = item.type === "bento";
+                  let isBanner = item.type === "banner";
 
-                  if (id === "bento") {
-                    name = settings.bentoTitle || "Хэсэгчилсэн ангилал (Bento сүлжээ)";
-                    isBento = true;
-                  } else if (id === "banner") {
-                    name = "Сурталчилгааны баннер (Promo Banner)";
-                    isBanner = true;
+                  if (isBento) {
+                    name = item.bentoTitle || "Хэсэгчилсэн ангилал (Bento сүлжээ)";
+                  } else if (isBanner) {
+                    name = "Сурталчилгааны баннер";
+                    imgUrl = item.bentoBannerImage;
                   } else {
-                    const cat = categories.find(c => c.id === id);
+                    const catId = item.categoryId || item.id;
+                    const cat = categories.find(c => c.id === catId);
                     name = cat?.name ?? "Ангилал";
-                    isCategory = true;
+                    const { url } = resolveCatImage(cat?.image);
+                    imgUrl = url;
                   }
 
+                  const isEditing = editingSectionId === item.id;
+
                   return (
-                    <div key={id} className="flex items-center gap-3 bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-2 opacity-60 hover:opacity-100 transition-opacity">
-                      {isCategory && <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0 text-slate-400">📁</span>}
-                      {isBento && <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0 text-slate-400">🧩</span>}
-                      {isBanner && <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0 text-slate-400">🖼️</span>}
-                      <span className="font-semibold text-slate-500 text-sm flex-1 truncate">{name}</span>
-                      <button
-                        type="button"
-                        onClick={() => showLayoutItem(id)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F] hover:bg-[#D32F2F]/5 transition-colors shrink-0"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Харуулах
-                      </button>
+                    <div key={item.id} className={`flex items-center gap-3 bg-slate-50 rounded-2xl px-4 py-3 group hover:bg-slate-100 transition-all border ${isEditing ? "border-[#D32F2F] ring-2 ring-[#D32F2F]/10 bg-white hover:bg-white" : "border-transparent"}`}>
+                      <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-slate-200 text-slate-500 text-xs font-bold shrink-0">{idx + 1}</span>
+                      
+                      {isCategory && (imgUrl ? (
+                        <img src={imgUrl} alt={name} className="w-8 h-8 rounded-lg object-cover shrink-0 border border-slate-150" />
+                      ) : (
+                        <span className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0">📁</span>
+                      ))}
+                      {isBento && <span className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-150 flex items-center justify-center text-sm shrink-0">🧩</span>}
+                      {isBanner && (imgUrl ? (
+                        <img src={imgUrl} alt={name} className="w-8 h-8 rounded-lg object-cover shrink-0 border border-slate-150" />
+                      ) : (
+                        <span className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-150 flex items-center justify-center text-sm shrink-0">🖼️</span>
+                      ))}
+
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold text-slate-700 text-sm truncate block leading-tight">{name}</span>
+                        <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
+                          {isCategory && "Ангиллын бүтээгдэхүүний мөр"}
+                          {isBento && "Bento 9-цонхот сүлжээ"}
+                          {isBanner && "Сурталчилгааны баннер"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Edit Button for Bento/Banner */}
+                        {(isBento || isBanner) && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingSectionId(isEditing ? null : item.id)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${isEditing ? "bg-[#D32F2F] text-white border-transparent" : "bg-white text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F]"}`}
+                          >
+                            {isEditing ? "Хаах" : "Засах"}
+                          </button>
+                        )}
+                        {/* Hide button */}
+                        <button
+                          type="button"
+                          onClick={() => hideLayoutItem(item.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400 hover:border-red-500 hover:text-red-500 transition-colors"
+                          title="Нуух"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                        {/* Move Up */}
+                        <button
+                          type="button"
+                          onClick={() => moveLayoutItem(idx, -1)}
+                          disabled={idx === 0}
+                          className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          title="Дээш"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                        {/* Move Down */}
+                        <button
+                          type="button"
+                          onClick={() => moveLayoutItem(idx, 1)}
+                          disabled={idx === layout.length - 1}
+                          className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          title="Доош"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
-          );
-        })()}
-      </div>
+
+            {/* Hidden List */}
+            {(() => {
+              const hiddenCats = rootCategories.filter(cat => !layout.some(x => x.type === "category" && (x.categoryId === cat.id || x.id === cat.id)));
+              
+              if (hiddenCats.length === 0) return null;
+
+              return (
+                <div className="space-y-2 pt-4 border-t border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Нуугдсан хэсгүүд ({hiddenCats.length})</p>
+                  <div className="space-y-1.5">
+                    {hiddenCats.map((cat) => (
+                      <div key={cat.id} className="flex items-center gap-3 bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-2 opacity-60 hover:opacity-100 transition-opacity">
+                        <span className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0 text-slate-400">📁</span>
+                        <span className="font-bold text-slate-500 text-sm flex-1 truncate">{cat.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => showLayoutItem({ id: cat.id, type: "category", categoryId: cat.id })}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F] hover:bg-[#D32F2F]/5 transition-colors shrink-0"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                          Харуулах
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Section Editors */}
+          {editingSectionId && (() => {
+            const section = layout.find(s => s.id === editingSectionId);
+            if (!section) return null;
+
+            if (section.type === "bento") {
+              return (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">🧩 Bento сүлжээ засварлагч</span>
+                    <button type="button" onClick={() => setEditingSectionId(null)} className="text-xs text-slate-500 hover:text-slate-700 font-medium">Хаах ✕</button>
+                  </div>
+                  <BentoSectionEditor
+                    tiles={section.bentoTiles || ensure9([])}
+                    bentoTitle={section.bentoTitle || ""}
+                    onChange={(nextTiles) => updateSectionData(editingSectionId, { bentoTiles: nextTiles })}
+                    onTitleChange={(nextTitle) => updateSectionData(editingSectionId, { bentoTitle: nextTitle })}
+                    cats={activeCats}
+                  />
+                </div>
+              );
+            }
+
+            if (section.type === "banner") {
+              return (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center px-1">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">🖼️ Баннер засварлагч</span>
+                    <button type="button" onClick={() => setEditingSectionId(null)} className="text-xs text-slate-500 hover:text-slate-700 font-medium">Хаах ✕</button>
+                  </div>
+                  <BannerSectionEditor
+                    image={section.bentoBannerImage || ""}
+                    link={section.bentoBannerLink || ""}
+                    onImageChange={(nextImg) => updateSectionData(editingSectionId, { bentoBannerImage: nextImg })}
+                    onLinkChange={(nextLink) => updateSectionData(editingSectionId, { bentoBannerLink: nextLink })}
+                  />
+                </div>
+              );
+            }
+
+            return null;
+          })()}
+        </div>
+      )}
 
       {/* Save bar */}
       <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-4">

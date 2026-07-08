@@ -763,7 +763,7 @@ function BentoTab({
 type Tab = "big" | "small" | "bento";
 
 export default function HomepagePage() {
-  const { settings, updateSettings, categories } = useTenantAdmin();
+  const { settings, updateSettings, categories, reorderCategories } = useTenantAdmin();
 
   const [bigSlides,   setBigSlides]   = useState<BannerSlide[]>(() => ensure3(settings.bannerSlidesBig));
   const [smallSlides, setSmallSlides] = useState<BannerSlide[]>(() => ensure3(settings.bannerSlidesSmall));
@@ -819,6 +819,18 @@ export default function HomepagePage() {
 
   // Show all active categories in picker
   const activeCats = (categories as Cat[]).filter((c) => c.status === "active");
+
+  const rootCategories = [...categories.filter(
+    (c) => c.parentId === null || !categories.some((parent) => parent.id === c.parentId)
+  )].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  function moveRoot(index: number, dir: -1 | 1) {
+    const next = [...rootCategories];
+    const target = index + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    reorderCategories(next.map((c, i) => ({ id: c.id, sortOrder: i })));
+  }
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -879,6 +891,63 @@ export default function HomepagePage() {
           onBentoBannerLinkChange={(v) => { setBentoBannerLink(v); setSaved(false); }}
           cats={activeCats}
         />
+      )}
+
+      {/* Category order panel */}
+      {rootCategories.length > 1 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <h3 className="font-bold text-slate-800 text-sm">Дарааллын тохиргоо</h3>
+            <span className="text-xs text-slate-400 ml-1">— харагдах дараалал (дэлгүүрийн нүүр хуудасны ангиллууд)</span>
+          </div>
+          <div className="space-y-1.5">
+            {rootCategories.map((cat, idx) => {
+              const { url } = resolveCatImage(cat.image);
+              return (
+                <div key={cat.id} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2.5 group hover:bg-slate-100 transition-colors">
+                  <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-slate-200 text-slate-500 text-xs font-bold shrink-0">{idx + 1}</span>
+                  {url ? (
+                    <img src={url} alt={cat.name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0">
+                      📁
+                    </span>
+                  )}
+                  <span className="font-semibold text-slate-700 text-sm flex-1 truncate">{cat.name}</span>
+                  <span className="text-xs font-mono text-slate-400 hidden sm:block">/{cat.slug}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cat.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
+                    {cat.status === "active" ? "Идэвхтэй" : "Идэвхгүй"}
+                  </span>
+                  <div className="flex gap-1 shrink-0">
+                    <button
+                      onClick={() => moveRoot(idx, -1)}
+                      disabled={idx === 0}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Дээш"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => moveRoot(idx, 1)}
+                      disabled={idx === rootCategories.length - 1}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Доош"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Save bar */}

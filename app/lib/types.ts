@@ -201,6 +201,7 @@ export type StoreSettings = {
   ebarimtKhoroo?: string;
   ebarimtEnabled?: boolean;
   ebarimtAutoSend?: boolean;
+  homepageLayout?: string[];
 };
 
 export type StoreBranch = {

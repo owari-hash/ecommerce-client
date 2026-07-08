@@ -772,10 +772,15 @@ export default function HomepagePage() {
   const [bentoType,   setBentoType]   = useState(settings.bentoType ?? "category");
   const [bentoBannerImage, setBentoBannerImage] = useState(settings.bentoBannerImage ?? "");
   const [bentoBannerLink,  setBentoBannerLink]  = useState(settings.bentoBannerLink ?? "");
+  const [layout,      setLayout]      = useState<string[]>([]);
   
   const [activeTab,   setActiveTab]   = useState<Tab>("big");
   const [saved,       setSaved]       = useState(false);
   const [saving,      setSaving]      = useState(false);
+
+  const rootCategories = [...categories.filter(
+    (c) => c.parentId === null || !categories.some((parent) => parent.id === c.parentId)
+  )];
 
   useEffect(() => {
     setBigSlides(ensure3(settings.bannerSlidesBig));
@@ -785,6 +790,32 @@ export default function HomepagePage() {
     setBentoType(settings.bentoType ?? "category");
     setBentoBannerImage(settings.bentoBannerImage ?? "");
     setBentoBannerLink(settings.bentoBannerLink ?? "");
+
+    // Process layout state
+    const rootCatIds = rootCategories.map(c => c.id);
+    let initialLayout = settings.homepageLayout && settings.homepageLayout.length > 0
+      ? [...settings.homepageLayout]
+      : [];
+
+    if (initialLayout.length === 0) {
+      initialLayout = [...rootCatIds, "bento", "banner"];
+    } else {
+      // Clean up layout: only keep active categories that still exist + bento + banner
+      initialLayout = initialLayout.filter(id => {
+        if (id === "bento" || id === "banner") return true;
+        return categories.some(c => c.id === id);
+      });
+      // Append any missing active root categories
+      rootCatIds.forEach(id => {
+        if (!initialLayout.includes(id)) {
+          initialLayout.push(id);
+        }
+      });
+      // Ensure bento and banner are present
+      if (!initialLayout.includes("bento")) initialLayout.push("bento");
+      if (!initialLayout.includes("banner")) initialLayout.push("banner");
+    }
+    setLayout(initialLayout);
   }, [
     settings.bannerSlidesBig,
     settings.bannerSlidesSmall,
@@ -793,6 +824,8 @@ export default function HomepagePage() {
     settings.bentoType,
     settings.bentoBannerImage,
     settings.bentoBannerLink,
+    settings.homepageLayout,
+    categories,
   ]);
 
   async function handleSave() {
@@ -805,10 +838,40 @@ export default function HomepagePage() {
       bentoType,
       bentoBannerImage,
       bentoBannerLink,
+      homepageLayout: layout,
     });
+
+    // Reorder categories sorting in DB
+    const catOrder = layout
+      .filter(id => id !== "bento" && id !== "banner")
+      .map((id, index) => ({ id, sortOrder: index }));
+    await reorderCategories(catOrder);
+
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
+  }
+
+  function moveLayoutItem(index: number, dir: -1 | 1) {
+    const next = [...layout];
+    const target = index + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setLayout(next);
+    setSaved(false);
+  }
+
+  function hideLayoutItem(id: string) {
+    const next = layout.filter(x => x !== id);
+    setLayout(next);
+    setSaved(false);
+  }
+
+  function showLayoutItem(id: string) {
+    if (!layout.includes(id)) {
+      setLayout([...layout, id]);
+      setSaved(false);
+    }
   }
 
   const tabs: { id: Tab; label: string }[] = [
@@ -819,18 +882,6 @@ export default function HomepagePage() {
 
   // Show all active categories in picker
   const activeCats = (categories as Cat[]).filter((c) => c.status === "active");
-
-  const rootCategories = [...categories.filter(
-    (c) => c.parentId === null || !categories.some((parent) => parent.id === c.parentId)
-  )].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-
-  function moveRoot(index: number, dir: -1 | 1) {
-    const next = [...rootCategories];
-    const target = index + dir;
-    if (target < 0 || target >= next.length) return;
-    [next[index], next[target]] = [next[target], next[index]];
-    reorderCategories(next.map((c, i) => ({ id: c.id, sortOrder: i })));
-  }
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -893,37 +944,82 @@ export default function HomepagePage() {
         />
       )}
 
-      {/* Category order panel */}
-      {rootCategories.length > 1 && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <h3 className="font-bold text-slate-800 text-sm">Дарааллын тохиргоо</h3>
-            <span className="text-xs text-slate-400 ml-1">— харагдах дараалал (дэлгүүрийн нүүр хуудасны ангиллууд)</span>
-          </div>
+      {/* Homepage layout sequence manager */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-[#D32F2F]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <h3 className="font-bold text-slate-800 text-sm">Нүүр хуудасны хэсгүүдийн дараалал</h3>
+          <span className="text-xs text-slate-400 ml-1">— харагдах дараалал (дэлгүүрийн нүүр хуудас)</span>
+        </div>
+
+        {/* Visible items */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Харагдаж буй хэсгүүд ({layout.length})</p>
           <div className="space-y-1.5">
-            {rootCategories.map((cat, idx) => {
-              const { url } = resolveCatImage(cat.image);
+            {layout.map((id, idx) => {
+              let name = "";
+              let imgUrl = "";
+              let isCategory = false;
+              let isBento = false;
+              let isBanner = false;
+
+              if (id === "bento") {
+                name = settings.bentoTitle || "Хэсэгчилсэн ангилал (Bento сүлжээ)";
+                isBento = true;
+              } else if (id === "banner") {
+                name = "Сурталчилгааны баннер (Promo Banner)";
+                imgUrl = settings.bentoBannerImage;
+                isBanner = true;
+              } else {
+                const cat = categories.find(c => c.id === id);
+                name = cat?.name ?? "Ангилал";
+                const { url } = resolveCatImage(cat?.image);
+                imgUrl = url;
+                isCategory = true;
+              }
+
               return (
-                <div key={cat.id} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2.5 group hover:bg-slate-100 transition-colors">
+                <div key={id} className="flex items-center gap-3 bg-slate-50 rounded-xl px-4 py-2.5 group hover:bg-slate-100 transition-colors">
                   <span className="w-6 h-6 flex items-center justify-center rounded-lg bg-slate-200 text-slate-500 text-xs font-bold shrink-0">{idx + 1}</span>
-                  {url ? (
-                    <img src={url} alt={cat.name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                  {isCategory && (imgUrl ? (
+                    <img src={imgUrl} alt={name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
                   ) : (
-                    <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0">
-                      📁
+                    <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0">📁</span>
+                  ))}
+                  {isBento && <span className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-sm shrink-0">🧩</span>}
+                  {isBanner && (imgUrl ? (
+                    <img src={imgUrl} alt={name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <span className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-sm shrink-0">🖼️</span>
+                  ))}
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-slate-700 text-sm truncate block">{name}</span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {isCategory && "Бүтээгдэхүүнүүдийн мөр"}
+                      {isBento && "9 цонхот Bento сүлжээ"}
+                      {isBanner && "Сурталчилгааны баннер хэсэг"}
                     </span>
-                  )}
-                  <span className="font-semibold text-slate-700 text-sm flex-1 truncate">{cat.name}</span>
-                  <span className="text-xs font-mono text-slate-400 hidden sm:block">/{cat.slug}</span>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cat.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-400"}`}>
-                    {cat.status === "active" ? "Идэвхтэй" : "Идэвхгүй"}
-                  </span>
-                  <div className="flex gap-1 shrink-0">
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* Hide Button */}
                     <button
-                      onClick={() => moveRoot(idx, -1)}
+                      type="button"
+                      onClick={() => hideLayoutItem(id)}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 hover:border-red-500 hover:text-red-500 transition-colors"
+                      title="Нуух"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </button>
+                    {/* Move Up */}
+                    <button
+                      type="button"
+                      onClick={() => moveLayoutItem(idx, -1)}
                       disabled={idx === 0}
                       className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title="Дээш"
@@ -932,9 +1028,11 @@ export default function HomepagePage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
                       </svg>
                     </button>
+                    {/* Move Down */}
                     <button
-                      onClick={() => moveRoot(idx, 1)}
-                      disabled={idx === rootCategories.length - 1}
+                      type="button"
+                      onClick={() => moveLayoutItem(idx, 1)}
+                      disabled={idx === layout.length - 1}
                       className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-[#D32F2F] hover:text-[#D32F2F] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                       title="Доош"
                     >
@@ -948,7 +1046,59 @@ export default function HomepagePage() {
             })}
           </div>
         </div>
-      )}
+
+        {/* Hidden items */}
+        {(() => {
+          const allPossibleIds = [...rootCategories.map(c => c.id), "bento", "banner"];
+          const hiddenIds = allPossibleIds.filter(id => !layout.includes(id));
+          if (hiddenIds.length === 0) return null;
+
+          return (
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Нуугдсан хэсгүүд ({hiddenIds.length})</p>
+              <div className="space-y-1.5">
+                {hiddenIds.map((id) => {
+                  let name = "";
+                  let isCategory = false;
+                  let isBento = false;
+                  let isBanner = false;
+
+                  if (id === "bento") {
+                    name = settings.bentoTitle || "Хэсэгчилсэн ангилал (Bento сүлжээ)";
+                    isBento = true;
+                  } else if (id === "banner") {
+                    name = "Сурталчилгааны баннер (Promo Banner)";
+                    isBanner = true;
+                  } else {
+                    const cat = categories.find(c => c.id === id);
+                    name = cat?.name ?? "Ангилал";
+                    isCategory = true;
+                  }
+
+                  return (
+                    <div key={id} className="flex items-center gap-3 bg-slate-50/50 border border-slate-100 rounded-xl px-4 py-2 opacity-60 hover:opacity-100 transition-opacity">
+                      {isCategory && <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0 text-slate-400">📁</span>}
+                      {isBento && <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0 text-slate-400">🧩</span>}
+                      {isBanner && <span className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-sm shrink-0 text-slate-400">🖼️</span>}
+                      <span className="font-semibold text-slate-500 text-sm flex-1 truncate">{name}</span>
+                      <button
+                        type="button"
+                        onClick={() => showLayoutItem(id)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:border-[#D32F2F] hover:text-[#D32F2F] hover:bg-[#D32F2F]/5 transition-colors shrink-0"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Харуулах
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+      </div>
 
       {/* Save bar */}
       <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-100 shadow-sm px-6 py-4">

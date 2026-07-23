@@ -80,6 +80,12 @@ function ensure3(arr: BannerSlide[]): BannerSlide[] {
   while (r.length < 3) r.push({ ...EMPTY_SLIDE });
   return r.slice(0, 3);
 }
+// Featured-product slot on the big banner's detail reveal — exactly one item.
+function ensure1(arr: BannerSlide[]): BannerSlide[] {
+  const r = [...arr];
+  while (r.length < 1) r.push({ ...EMPTY_SLIDE });
+  return r.slice(0, 1);
+}
 function ensure9(arr: BentoTile[]): BentoTile[] {
   const r = [...arr];
   while (r.length < 9) r.push({ ...EMPTY_TILE });
@@ -151,6 +157,93 @@ function CategoryPicker({
   );
 }
 
+// ─── Scroll-gallery images (featured-product slot only, up to 5) ──────────────
+
+function ImageGalleryEditor({
+  images,
+  onChange,
+}: {
+  images: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [uploading, setUploading] = useState<number | null>(null);
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>, idx: number) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(idx);
+    try {
+      const url = await uploadImage(file);
+      const next = [...images];
+      next[idx] = url;
+      onChange(next.filter(Boolean).slice(0, 5));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(null);
+      e.target.value = "";
+    }
+  }
+
+  function remove(idx: number) {
+    onChange(images.filter((_, i) => i !== idx));
+  }
+
+  const slots = [...images];
+  while (slots.length < 5) slots.push("");
+
+  return (
+    <div className="border border-slate-100 rounded-xl p-3 bg-slate-50 space-y-2">
+      <p className="text-xs font-semibold text-slate-600">Гүйлгэх үеийн зурагнууд (дээд тал нь 5)</p>
+      <p className="text-[11px] text-slate-400">
+        Хэрэглэгч том баннерыг гүйлгэхэд эдгээр зурагнууд дараалан харагдаж, бүтээгдэхүүний дэлгэрэнгүй үзэмжийг үүсгэнэ.
+      </p>
+      <div className="flex gap-2 flex-wrap">
+        {slots.slice(0, 5).map((img, idx) => (
+          <div
+            key={idx}
+            className="relative w-16 h-16 rounded-lg border border-slate-200 bg-white overflow-hidden flex items-center justify-center shrink-0"
+          >
+            {img ? (
+              <>
+                <img src={img} alt="" className="w-full h-full object-cover" />
+                <span className="absolute bottom-0.5 left-0.5 w-4 h-4 rounded-full bg-black/60 text-white text-[9px] font-bold flex items-center justify-center">
+                  {idx + 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => remove(idx)}
+                  className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-white/90 border border-slate-200 text-slate-400 hover:text-red-500 flex items-center justify-center text-[10px] leading-none"
+                >
+                  ×
+                </button>
+              </>
+            ) : (
+              <label className="cursor-pointer w-full h-full flex items-center justify-center text-slate-300 hover:text-slate-400 transition-colors">
+                {uploading === idx ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                ) : (
+                  <span className="text-xl leading-none">+</span>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={uploading !== null}
+                  onChange={(e) => handleUpload(e, idx)}
+                />
+              </label>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Banner tab ───────────────────────────────────────────────────────────────
 
 function BannerTab({
@@ -159,12 +252,14 @@ function BannerTab({
   cats,
   label,
   hint,
+  showGallery,
 }: {
   slides: BannerSlide[];
   onChange: (next: BannerSlide[]) => void;
   cats: Cat[];
   label: string;
   hint: string;
+  showGallery?: boolean;
 }) {
   // active: which slot is open for category picking
   const [active, setActive] = useState<number | null>(null);
@@ -402,6 +497,14 @@ function BannerTab({
             </button>
           )}
         </div>
+      )}
+
+      {/* ── Scroll-gallery images — featured-product slot only ─────────── */}
+      {showGallery && slides[0]?.title && (
+        <ImageGalleryEditor
+          images={slides[0].images ?? []}
+          onChange={(next) => onChange(slides.map((s, i) => (i === 0 ? { ...s, images: next } : s)))}
+        />
       )}
     </div>
   );
@@ -711,7 +814,7 @@ export default function HomepagePage() {
   const { settings, updateSettings, categories, reorderCategories } = useTenantAdmin();
 
   const [bigSlides,   setBigSlides]   = useState<BannerSlide[]>(() => ensure3(settings.bannerSlidesBig));
-  const [smallSlides, setSmallSlides] = useState<BannerSlide[]>(() => ensure3(settings.bannerSlidesSmall));
+  const [smallSlides, setSmallSlides] = useState<BannerSlide[]>(() => ensure1(settings.bannerSlidesSmall));
   const [tiles,       setTiles]       = useState<BentoTile[]>(  () => ensure9(settings.bentoTiles));
   const [bentoTitle,  setBentoTitle]  = useState(settings.bentoTitle ?? "");
   const [bentoType,   setBentoType]   = useState(settings.bentoType ?? "category");
@@ -730,7 +833,7 @@ export default function HomepagePage() {
 
   useEffect(() => {
     setBigSlides(ensure3(settings.bannerSlidesBig));
-    setSmallSlides(ensure3(settings.bannerSlidesSmall));
+    setSmallSlides(ensure1(settings.bannerSlidesSmall));
     setTiles(ensure9(settings.bentoTiles));
     setBentoTitle(settings.bentoTitle ?? "");
     setBentoType(settings.bentoType ?? "category");
@@ -892,7 +995,7 @@ export default function HomepagePage() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "big",   label: "Том баннер" },
-    { id: "small", label: "Жижиг баннер" },
+    { id: "small", label: "Онцлох бүтээгдэхүүн" },
     { id: "bento", label: "Нүүр хуудасны бүтэц" },
   ];
 
@@ -941,8 +1044,9 @@ export default function HomepagePage() {
           slides={smallSlides}
           onChange={(next) => { setSmallSlides(next); setSaved(false); }}
           cats={activeCats}
-          label="Жижиг баннер — баруун карусель (1/3 өргөн)"
-          hint="3 слайд. Ангилал сонгоход зураг, нэр, холбоос автоматаар бөглөгдөнө."
+          label="Онцлох бүтээгдэхүүн — том баннерын дэлгэрэнгүй харагдац дээр гардаг карт"
+          hint="Зөвхөн 1 бүтээгдэхүүн/ангилал сонгоно. Хэрэглэгч том баннерыг гүйлгэхэд энэ карт томорч дэлгэрэнгүй харагдана."
+          showGallery
         />
       )}
 

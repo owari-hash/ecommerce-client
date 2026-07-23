@@ -145,6 +145,8 @@ export type BannerSlide = {
   subtitle: string;
   emoji: string;
   image: string;
+  /** Up to 5 gallery images — used by the featured-product slot for its scroll-animated reveal. */
+  images?: string[];
   /** Optional custom image URL override (not saved to DB, UI-only tracking) */
   _customImage?: string;
 };

@@ -653,6 +653,9 @@ function BentoSectionEditor({
         <p className="text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide">
           Байрлал сонгох (дарж ангилал оноох)
         </p>
+        <p className="text-[11px] text-slate-400 -mt-2 mb-3">
+          Санал болгох зургийн хэмжээ: дор хаяж 900×600px, landscape харьцаатай.
+        </p>
 
         <div className="flex gap-2">
           <div className="flex-1 space-y-2">
@@ -788,6 +791,7 @@ function BannerSectionEditor({
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
       <div>
         <label className="block text-sm font-semibold text-slate-700 mb-1.5">Баннер зураг</label>
+        <p className="text-[11px] text-slate-400 mb-2">Санал болгох зургийн хэмжээ: 1200×600px (2:1 харьцаатай).</p>
         <div className="flex gap-3 items-center">
           {image ? (
             <img src={image} alt="Promo Banner" className="w-24 h-12 rounded-lg object-cover border border-slate-200 shrink-0" />
@@ -1047,7 +1051,7 @@ export default function HomepagePage() {
           onChange={(next) => { setBigSlides(next); setSaved(false); }}
           cats={activeCats}
           label="Том баннер"
-          hint="3 слайд. Ангилал сонгоход зураг, нэр, холбоос автоматаар бөглөгдөнө. Слайд бүрт дээд тал нь 5 зураг нэмэхэд, хэрэглэгч дарахад тухайн зурагнууд дараалан том харагдах цонх нээгдэнэ."
+          hint="3 слайд. Ангилал сонгоход зураг, нэр, холбоос автоматаар бөглөгдөнө. Слайд бүрт дээд тал нь 5 зураг нэмэхэд, хэрэглэгч дарахад тухайн зурагнууд дараалан том харагдах цонх нээгдэнэ. Санал болгох зургийн хэмжээ: 2400×1400px (landscape), доод тал нь 1600×900px."
           showGallery
         />
       )}

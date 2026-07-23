@@ -1739,6 +1739,7 @@ export default function ProductsPage() {
                               </svg>
                               <p className="text-xs font-semibold text-slate-500">Зураг оруулах (товших эсвэл чирэх)</p>
                               <p className="text-[10px] text-slate-400 font-medium">JPG, PNG, WEBP · {MAX_IMAGES - form.images.length} зураг нэмэх боломжтой</p>
+                              <p className="text-[10px] text-slate-400 font-medium">Санал болгох хэмжээ: 1200×1200px, дөрвөлжин (1:1) харьцаатай</p>
                             </div>
                           )}
                         </div>

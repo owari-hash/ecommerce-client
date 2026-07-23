@@ -80,12 +80,6 @@ function ensure3(arr: BannerSlide[]): BannerSlide[] {
   while (r.length < 3) r.push({ ...EMPTY_SLIDE });
   return r.slice(0, 3);
 }
-// Featured-product slot on the big banner's detail reveal — exactly one item.
-function ensure1(arr: BannerSlide[]): BannerSlide[] {
-  const r = [...arr];
-  while (r.length < 1) r.push({ ...EMPTY_SLIDE });
-  return r.slice(0, 1);
-}
 function ensure9(arr: BentoTile[]): BentoTile[] {
   const r = [...arr];
   while (r.length < 9) r.push({ ...EMPTY_TILE });
@@ -264,6 +258,7 @@ function BannerTab({
   // active: which slot is open for category picking
   const [active, setActive] = useState<number | null>(null);
   const [customImgOpen, setCustomImgOpen] = useState<number | null>(null);
+  const [galleryOpen, setGalleryOpen] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -315,6 +310,7 @@ function BannerTab({
     onChange(next);
     if (active === idx) setActive(null);
     if (customImgOpen === idx) setCustomImgOpen(null);
+    if (galleryOpen === idx) setGalleryOpen(null);
   }
 
   return (
@@ -335,6 +331,7 @@ function BannerTab({
           const filled = !!slide.title;
           const isOpen = active === idx;
           const isImgOpen = customImgOpen === idx;
+          const isGalleryOpen = galleryOpen === idx;
 
           return (
             <div
@@ -808,13 +805,12 @@ function BannerSectionEditor({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-type Tab = "big" | "small" | "bento";
+type Tab = "big" | "bento";
 
 export default function HomepagePage() {
   const { settings, updateSettings, categories, reorderCategories } = useTenantAdmin();
 
   const [bigSlides,   setBigSlides]   = useState<BannerSlide[]>(() => ensure3(settings.bannerSlidesBig));
-  const [smallSlides, setSmallSlides] = useState<BannerSlide[]>(() => ensure1(settings.bannerSlidesSmall));
   const [tiles,       setTiles]       = useState<BentoTile[]>(  () => ensure9(settings.bentoTiles));
   const [bentoTitle,  setBentoTitle]  = useState(settings.bentoTitle ?? "");
   const [bentoType,   setBentoType]   = useState(settings.bentoType ?? "category");
@@ -833,7 +829,6 @@ export default function HomepagePage() {
 
   useEffect(() => {
     setBigSlides(ensure3(settings.bannerSlidesBig));
-    setSmallSlides(ensure1(settings.bannerSlidesSmall));
     setTiles(ensure9(settings.bentoTiles));
     setBentoTitle(settings.bentoTitle ?? "");
     setBentoType(settings.bentoType ?? "category");
@@ -900,7 +895,6 @@ export default function HomepagePage() {
     setLayout(processedLayout);
   }, [
     settings.bannerSlidesBig,
-    settings.bannerSlidesSmall,
     settings.bentoTiles,
     settings.bentoTitle,
     settings.bentoType,
@@ -914,7 +908,6 @@ export default function HomepagePage() {
     setSaving(true);
     await updateSettings({
       bannerSlidesBig: bigSlides,
-      bannerSlidesSmall: smallSlides,
       bentoTiles: tiles,
       bentoTitle,
       bentoType,
@@ -995,7 +988,6 @@ export default function HomepagePage() {
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "big",   label: "Том баннер" },
-    { id: "small", label: "Онцлох бүтээгдэхүүн" },
     { id: "bento", label: "Нүүр хуудасны бүтэц" },
   ];
 
@@ -1034,18 +1026,8 @@ export default function HomepagePage() {
           slides={bigSlides}
           onChange={(next) => { setBigSlides(next); setSaved(false); }}
           cats={activeCats}
-          label="Том баннер — зүүн карусель (2/3 өргөн)"
-          hint="3 слайд. Ангилал сонгоход зураг, нэр, холбоос автоматаар бөглөгдөнө."
-        />
-      )}
-
-      {activeTab === "small" && (
-        <BannerTab
-          slides={smallSlides}
-          onChange={(next) => { setSmallSlides(next); setSaved(false); }}
-          cats={activeCats}
-          label="Онцлох бүтээгдэхүүн — том баннерын дэлгэрэнгүй харагдац дээр гардаг карт"
-          hint="Зөвхөн 1 бүтээгдэхүүн/ангилал сонгоно. Хэрэглэгч том баннерыг гүйлгэхэд энэ карт томорч дэлгэрэнгүй харагдана."
+          label="Том баннер"
+          hint="3 слайд. Ангилал сонгоход зураг, нэр, холбоос автоматаар бөглөгдөнө. Слайд бүрт дээд тал нь 5 зураг нэмэхэд, хэрэглэгч дарахад тухайн зурагнууд дараалан том харагдах цонх нээгдэнэ."
           showGallery
         />
       )}

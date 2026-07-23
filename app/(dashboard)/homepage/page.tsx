@@ -151,7 +151,7 @@ function CategoryPicker({
   );
 }
 
-// ─── Scroll-gallery images (featured-product slot only, up to 5) ──────────────
+// ─── Detail-view gallery images (per banner slide, up to 5) ───────────────────
 
 function ImageGalleryEditor({
   images,
@@ -188,9 +188,9 @@ function ImageGalleryEditor({
 
   return (
     <div className="border border-slate-100 rounded-xl p-3 bg-slate-50 space-y-2">
-      <p className="text-xs font-semibold text-slate-600">Гүйлгэх үеийн зурагнууд (дээд тал нь 5)</p>
+      <p className="text-xs font-semibold text-slate-600">Дэлгэрэнгүй харагдацын зурагнууд (дээд тал нь 5)</p>
       <p className="text-[11px] text-slate-400">
-        Хэрэглэгч том баннерыг гүйлгэхэд эдгээр зурагнууд дараалан харагдаж, бүтээгдэхүүний дэлгэрэнгүй үзэмжийг үүсгэнэ.
+        Хэрэглэгч энэ слайд дээр дарахад цонх нээгдэж, эдгээр зурагнууд нэг нэгээр том харагдана.
       </p>
       <div className="flex gap-2 flex-wrap">
         {slots.slice(0, 5).map((img, idx) => (
@@ -402,7 +402,7 @@ function BannerTab({
                   {filled && (
                     <button
                       type="button"
-                      onClick={() => { setCustomImgOpen(isImgOpen ? null : idx); setActive(null); }}
+                      onClick={() => { setCustomImgOpen(isImgOpen ? null : idx); setActive(null); setGalleryOpen(null); }}
                       title="Өөр зураг ашиглах"
                       className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${
                         isImgOpen
@@ -414,6 +414,26 @@ function BannerTab({
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01" />
+                      </svg>
+                    </button>
+                  )}
+
+                  {/* Detail-view gallery — only when filled and enabled for this tab */}
+                  {filled && showGallery && (
+                    <button
+                      type="button"
+                      onClick={() => { setGalleryOpen(isGalleryOpen ? null : idx); setActive(null); setCustomImgOpen(null); }}
+                      title="Дэлгэрэнгүй харагдацын зурагнууд"
+                      className={`px-2 py-1.5 rounded-lg text-[11px] font-semibold transition-all border ${
+                        isGalleryOpen
+                          ? "bg-slate-700 text-white border-slate-700"
+                          : (slide.images?.length ?? 0) > 0
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-300"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-slate-400"
+                      }`}
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </button>
                   )}
@@ -496,11 +516,11 @@ function BannerTab({
         </div>
       )}
 
-      {/* ── Scroll-gallery images — featured-product slot only ─────────── */}
-      {showGallery && slides[0]?.title && (
+      {/* ── Detail-view gallery — per slide, up to 5 images ─────────── */}
+      {galleryOpen !== null && slides[galleryOpen]?.title && (
         <ImageGalleryEditor
-          images={slides[0].images ?? []}
-          onChange={(next) => onChange(slides.map((s, i) => (i === 0 ? { ...s, images: next } : s)))}
+          images={slides[galleryOpen].images ?? []}
+          onChange={(next) => onChange(slides.map((s, i) => (i === galleryOpen ? { ...s, images: next } : s)))}
         />
       )}
     </div>

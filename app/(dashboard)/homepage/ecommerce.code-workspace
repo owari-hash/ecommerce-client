@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../../../ecommerce"
+		},
+		{
+			"path": "../../../../ecomadminback"
+		},
+		{
+			"path": "../../.."
+		}
+	],
+	"settings": {}
+}
